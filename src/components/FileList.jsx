@@ -22,7 +22,7 @@ export function FileList({ items, disabled, onStemChange, onOwnerChange, onRemov
   if (items.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/40 px-6 py-16 text-center"
+        className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center shadow-sm"
         role="status"
         aria-live="polite"
       >

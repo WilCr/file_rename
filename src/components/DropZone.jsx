@@ -73,7 +73,7 @@ export function DropZone({ disabled, isDragging, onDraggingChange, onFiles }) {
           ? 'cursor-not-allowed border-slate-200 bg-slate-50/50 opacity-60'
           : isDragging
             ? 'scale-[1.02] border-violet-500 bg-violet-50/80 shadow-lg shadow-violet-500/15'
-            : 'border-slate-300 bg-white/60 hover:border-violet-400 hover:bg-violet-50/40',
+            : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50/80',
       ].join(' ')}
     >
       <input

@@ -69,7 +69,7 @@ function FileItemInner({
   }, [originalName])
 
   return (
-    <li className="file-row-enter flex flex-col gap-3 rounded-xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:gap-4">
+    <li className="file-row-enter flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-4">
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <TypeIcon mime={mime} name={originalName} />
         <div className="min-w-0 flex-1">

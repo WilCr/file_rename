@@ -10,7 +10,7 @@
     @apply antialiased;
   }
   body {
-    @apply m-0 min-h-svh;
+    @apply m-0 min-h-svh bg-slate-100;
   }
   #root {
     @apply min-h-svh w-full;

@@ -247,7 +247,7 @@ export default function App() {
   )
 
   return (
-    <div className="min-h-svh bg-gradient-to-br from-slate-50 via-violet-50/40 to-fuchsia-50/30 font-sans text-slate-900">
+    <div className="min-h-svh bg-slate-100 font-sans text-slate-900">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow"
@@ -256,11 +256,13 @@ export default function App() {
       </a>
 
       <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-        <Header />
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <Header />
+        </div>
 
-        <section className="mt-8 rounded-2xl border border-white/60 bg-white/50 p-4 shadow-sm backdrop-blur-md sm:p-6">
+        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <h2 className="sr-only">API settings</h2>
-          <details className="group rounded-xl border border-slate-200/80 bg-white/70 p-4">
+          <details className="group rounded-lg border border-slate-200 bg-slate-50/80 p-4">
             <summary className="cursor-pointer list-none font-medium text-slate-800 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-violet-500 [&::-webkit-details-marker]:hidden">
               Settings — Claude API key & history
             </summary>
