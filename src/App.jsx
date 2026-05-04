@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Login from './components/Auth/Login'
+import Register from './components/Auth/Register'
+import ForgotPassword from './components/Auth/ForgotPassword'
+import ResetPassword from './components/Auth/ResetPassword'
 import { ControlPanel } from './components/ControlPanel'
 import { DropZone } from './components/DropZone'
 import { FileList } from './components/FileList'
 import { Header } from './components/Header'
+import PricingModal from './components/Paywall/PricingModal'
+import UpgradePrompt from './components/Paywall/UpgradePrompt'
+import UsageIndicator from './components/Paywall/UsageIndicator'
 import { ToastContainer } from './components/Toast'
 import { useFileProcessor } from './hooks/useFileProcessor'
 import { pushRecentOwner, useLocalStorage } from './hooks/useLocalStorage'
+import { getStoredToken, logout, setStoredToken, verifySession } from './services/auth'
+import { redirectToBillingPortal } from './services/stripe'
 import { downloadAllSequential } from './utils/downloadUtils'
 import {
   applyNamingPattern,
@@ -37,7 +46,17 @@ function computeFinalNames(items) {
 export default function App() {
   const [items, setItems] = useState([])
   const [isDragging, setIsDragging] = useState(false)
-  const [storedApiKey, setStoredApiKey] = useState('')
+  const [user, setUser] = useState(null)
+  const [authReady, setAuthReady] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
+  const [showRegister, setShowRegister] = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
+  const [showResetPassword, setShowResetPassword] = useState(false)
+  const [resetToken, setResetToken] = useState(null)
+  const [pricingOpen, setPricingOpen] = useState(false)
+  const [usageLimitedBanner, setUsageLimitedBanner] = useState(false)
+  const [usageRefreshKey, setUsageRefreshKey] = useState(0)
+
   const [preferredPattern, setPreferredPattern] = useLocalStorage('ai-renamer-preferred-pattern', 'date')
   const [recentOwners, setRecentOwners] = useLocalStorage('ai-renamer-recent-owners', [])
   const [toasts, setToasts] = useState([])
@@ -48,31 +67,10 @@ export default function App() {
     itemsRef.current = items
   }, [items])
 
-  useEffect(() => {
-    try {
-      setStoredApiKey(localStorage.getItem('ai-renamer-api-key') || '')
-    } catch {
-      /* ignore */
-    }
-  }, [])
+  const getToken = useCallback(() => getStoredToken(), [])
 
-  const getApiKey = useCallback(() => {
-    return import.meta.env.VITE_CLAUDE_API_KEY || storedApiKey
-  }, [storedApiKey])
-
-  const { isProcessing, processingProgress, processingTotal, error, resetError, runAISuggestions, cancel } =
-    useFileProcessor({ getApiKey })
-
-  useEffect(() => () => cancel(), [cancel])
-
-  const persistApiKey = useCallback((value) => {
-    try {
-      if (value) localStorage.setItem('ai-renamer-api-key', value)
-      else localStorage.removeItem('ai-renamer-api-key')
-    } catch {
-      /* ignore */
-    }
-    setStoredApiKey(value)
+  const bumpUsage = useCallback(() => {
+    setUsageRefreshKey((k) => k + 1)
   }, [])
 
   const pushToast = useCallback((message, type = 'info') => {
@@ -84,9 +82,88 @@ export default function App() {
     setToasts((t) => t.filter((x) => x.id !== id))
   }, [])
 
+  const { isProcessing, processingProgress, processingTotal, error, resetError, runAISuggestions, cancel } =
+    useFileProcessor({ getToken, onUsageUpdate: bumpUsage })
+
+  useEffect(() => () => cancel(), [cancel])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const token = getStoredToken()
+      if (!token) {
+        setUser(null)
+        setAuthReady(true)
+        return
+      }
+      try {
+        const data = await verifySession(token)
+        if (!cancelled) setUser(data.user)
+      } catch {
+        if (!cancelled) {
+          setStoredToken(null)
+          setUser(null)
+        }
+      } finally {
+        if (!cancelled) setAuthReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const reset = params.get('reset')
+    if (reset) {
+      setResetToken(reset)
+      setShowResetPassword(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('checkout') === 'success') {
+      pushToast('Thanks! Your subscription will update in a moment.', 'success')
+      window.history.replaceState({}, '', window.location.pathname)
+      bumpUsage()
+      const t = getStoredToken()
+      if (t) {
+        verifySession(t)
+          .then((data) => setUser(data.user))
+          .catch(() => {})
+      }
+    }
+    if (params.get('checkout') === 'canceled') {
+      pushToast('Checkout canceled.', 'info')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [bumpUsage, pushToast])
+
   useEffect(() => {
     if (error) pushToast(error, 'error')
   }, [error, pushToast])
+
+  const handleAuthSuccess = useCallback((data) => {
+    setUser(data.user)
+    bumpUsage()
+  }, [bumpUsage])
+
+  const handleSignOut = useCallback(() => {
+    logout()
+    setUser(null)
+    setUsageLimitedBanner(false)
+  }, [])
+
+  const handleManageBilling = useCallback(async () => {
+    try {
+      await redirectToBillingPortal()
+    } catch (e) {
+      pushToast(e?.message || 'Could not open billing portal.', 'error')
+    }
+  }, [pushToast])
 
   const addFiles = useCallback(
     (fileList) => {
@@ -165,9 +242,15 @@ export default function App() {
 
   const handleAISuggest = useCallback(async () => {
     resetError()
+    setUsageLimitedBanner(false)
     const list = itemsRef.current
     if (list.length === 0) return
-    const ok = await runAISuggestions(list, (id, update) => {
+    if (!getStoredToken()) {
+      setShowLogin(true)
+      pushToast('Sign in to use AI rename.', 'info')
+      return
+    }
+    const result = await runAISuggestions(list, (id, update) => {
       setItems((prev) =>
         prev.map((it) =>
           it.id === id
@@ -181,7 +264,13 @@ export default function App() {
         ),
       )
     })
-    if (ok) pushToast('AI suggestions applied. Review names before downloading.', 'success')
+    if (result?.ok) {
+      pushToast('AI suggestions applied. Review names before downloading.', 'success')
+    }
+    if (result?.usageLimited) {
+      setUsageLimitedBanner(true)
+      setPricingOpen(true)
+    }
   }, [pushToast, resetError, runAISuggestions])
 
   const handleDownloadAll = useCallback(async () => {
@@ -246,6 +335,8 @@ export default function App() {
     [items],
   )
 
+  const token = getStoredToken()
+
   return (
     <div className="min-h-svh bg-slate-100 font-sans text-slate-900">
       <a
@@ -257,53 +348,69 @@ export default function App() {
 
       <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <Header />
+          <Header
+            user={user}
+            onSignIn={() => {
+              setShowRegister(false)
+              setShowLogin(true)
+            }}
+            onSignUp={() => {
+              setShowLogin(false)
+              setShowRegister(true)
+            }}
+            onSignOut={handleSignOut}
+            onManageBilling={handleManageBilling}
+            onOpenPricing={() => setPricingOpen(true)}
+          />
         </div>
 
         <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <h2 className="sr-only">API settings</h2>
-          <details className="group rounded-lg border border-slate-200 bg-slate-50/80 p-4">
-            <summary className="cursor-pointer list-none font-medium text-slate-800 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-violet-500 [&::-webkit-details-marker]:hidden">
-              Settings — Claude API key & history
-            </summary>
-            <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
-              <p className="text-sm text-slate-600">
-                For production, prefer setting <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">VITE_CLAUDE_API_KEY</code> in
-                your environment. You can also paste a key here — it is stored only in this browser (
-                <span className="font-medium">localStorage</span>).
-              </p>
-              <label className="block text-sm font-medium text-slate-700" htmlFor="api-key-input">
-                API key (optional override)
-              </label>
-              <input
-                id="api-key-input"
-                type="password"
-                autoComplete="off"
-                value={storedApiKey}
-                onChange={(e) => persistApiKey(e.target.value)}
-                placeholder="sk-ant-..."
-                className="w-full max-w-xl rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-              />
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={clearOwnerHistory}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
-                >
-                  Clear owner history
-                </button>
-                {recentOwners.length > 0 && (
-                  <p className="text-xs text-slate-500">
-                    Recent: {recentOwners.slice(0, 5).join(', ')}
-                    {recentOwners.length > 5 ? '…' : ''}
-                  </p>
-                )}
+          <h2 className="sr-only">Account</h2>
+          {!authReady ? (
+            <p className="text-sm text-slate-600">Loading session…</p>
+          ) : (
+            <details className="group rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+              <summary className="cursor-pointer list-none font-medium text-slate-800 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-violet-500 [&::-webkit-details-marker]:hidden">
+                Settings — account &amp; owner history
+              </summary>
+              <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
+                <p className="text-sm text-slate-600">
+                  AI renames run on our servers with your account — no API key needed in the browser. Sign in above to
+                  get monthly credits based on your plan.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={clearOwnerHistory}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
+                  >
+                    Clear owner history
+                  </button>
+                  {recentOwners.length > 0 && (
+                    <p className="text-xs text-slate-500">
+                      Recent: {recentOwners.slice(0, 5).join(', ')}
+                      {recentOwners.length > 5 ? '…' : ''}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          </details>
+            </details>
+          )}
         </section>
 
         <main id="main" className="mt-8 space-y-6">
+          {usageLimitedBanner && (
+            <UpgradePrompt onUpgrade={() => setPricingOpen(true)} onDismiss={() => setUsageLimitedBanner(false)} />
+          )}
+
+          {user && (
+            <UsageIndicator
+              token={token}
+              refreshKey={usageRefreshKey}
+              onUpgradeClick={() => setPricingOpen(true)}
+            />
+          )}
+
           <DropZone
             disabled={busy}
             isDragging={isDragging}
@@ -344,6 +451,46 @@ export default function App() {
       </div>
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {showLogin && (
+        <Login
+          onClose={() => setShowLogin(false)}
+          onSuccess={handleAuthSuccess}
+          onSwitchToRegister={() => {
+            setShowLogin(false)
+            setShowRegister(true)
+          }}
+          onForgotPassword={() => {
+            setShowLogin(false)
+            setShowForgot(true)
+          }}
+        />
+      )}
+      {showRegister && (
+        <Register
+          onClose={() => setShowRegister(false)}
+          onSuccess={handleAuthSuccess}
+          onSwitchToLogin={() => {
+            setShowRegister(false)
+            setShowLogin(true)
+          }}
+        />
+      )}
+      {showForgot && <ForgotPassword onClose={() => setShowForgot(false)} />}
+      {showResetPassword && resetToken && (
+        <ResetPassword
+          token={resetToken}
+          onClose={() => {
+            setShowResetPassword(false)
+            setResetToken(null)
+          }}
+          onSuccess={() => {
+            pushToast('Password updated. Sign in with your new password.', 'success')
+            setShowLogin(true)
+          }}
+        />
+      )}
+      <PricingModal isOpen={pricingOpen} onClose={() => setPricingOpen(false)} />
     </div>
   )
 }

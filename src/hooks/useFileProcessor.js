@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { suggestFilenameWithClaude } from '../utils/apiClient'
+import { getAISuggestion, UsageLimitError } from '../services/api'
 import { formatFileSize, splitFilename } from '../utils/fileUtils'
 
 /**
@@ -7,9 +7,9 @@ import { formatFileSize, splitFilename } from '../utils/fileUtils'
  */
 
 /**
- * @param {{ getApiKey: () => string }} opts
+ * @param {{ getToken: () => string | null, onUsageUpdate?: () => void }} opts
  */
-export function useFileProcessor({ getApiKey }) {
+export function useFileProcessor({ getToken, onUsageUpdate }) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
   const [processingTotal, setProcessingTotal] = useState(0)
@@ -25,14 +25,14 @@ export function useFileProcessor({ getApiKey }) {
   /**
    * @param {FileEntry[]} entries
    * @param {(id: string, update: { newStem: string, suggested: boolean, datePrefix?: string | null }) => void} onItemDone
-   * @returns {Promise<boolean>}
+   * @returns {Promise<{ ok: boolean, usageLimited?: boolean }>}
    */
   const runAISuggestions = useCallback(
     async (entries, onItemDone) => {
-      const apiKey = getApiKey()?.trim()
-      if (!apiKey) {
-        setError('Add your Claude API key in Settings or set VITE_CLAUDE_API_KEY.')
-        return false
+      const token = getToken()?.trim()
+      if (!token) {
+        setError('Sign in to use AI rename.')
+        return { ok: false }
       }
 
       setError(null)
@@ -46,18 +46,16 @@ export function useFileProcessor({ getApiKey }) {
 
       try {
         for (let i = 0; i < entries.length; i += 1) {
-          if (signal.aborted) return false
+          if (signal.aborted) return { ok: false }
           const entry = entries[i]
           const file = entry.file
           const typeLabel = file.type || 'unknown'
           const sizeLabel = formatFileSize(file.size)
-          const suggested = await suggestFilenameWithClaude(
-            apiKey,
-            file.name,
-            typeLabel,
-            sizeLabel,
-            { signal },
-          )
+          const data = await getAISuggestion(file.name, typeLabel, sizeLabel, {
+            signal,
+            token,
+          })
+          const suggested = typeof data.suggestion === 'string' ? data.suggestion : ''
           const { stem } = splitFilename(suggested)
           const cleanStem = stem || splitFilename(file.name).stem
           onItemDone(entry.id, {
@@ -66,18 +64,23 @@ export function useFileProcessor({ getApiKey }) {
             datePrefix: null,
           })
           setProcessingProgress(i + 1)
+          onUsageUpdate?.()
         }
-        return true
+        return { ok: true }
       } catch (e) {
         if (!signal.aborted) {
+          if (e instanceof UsageLimitError) {
+            setError('You have reached your monthly AI rename limit.')
+            return { ok: false, usageLimited: true }
+          }
           setError(e?.message || 'AI request failed.')
         }
-        return false
+        return { ok: false }
       } finally {
         setIsProcessing(false)
       }
     },
-    [getApiKey],
+    [getToken, onUsageUpdate],
   )
 
   return {
