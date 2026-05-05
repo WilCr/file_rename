@@ -7,6 +7,7 @@ import { ControlPanel } from './components/ControlPanel'
 import { DropZone } from './components/DropZone'
 import { FileList } from './components/FileList'
 import { Header } from './components/Header'
+import Hero from './components/Hero'
 import PricingModal from './components/Paywall/PricingModal'
 import UpgradePrompt from './components/Paywall/UpgradePrompt'
 import UsageIndicator from './components/Paywall/UsageIndicator'
@@ -57,7 +58,7 @@ export default function App() {
   const [usageLimitedBanner, setUsageLimitedBanner] = useState(false)
   const [usageRefreshKey, setUsageRefreshKey] = useState(0)
 
-  const [preferredPattern, setPreferredPattern] = useLocalStorage('ai-renamer-preferred-pattern', 'date')
+  const [preferredPattern, setPreferredPattern] = useLocalStorage('ai-renamer-preferred-pattern', 'lowercase')
   const [recentOwners, setRecentOwners] = useLocalStorage('ai-renamer-recent-owners', [])
   const [toasts, setToasts] = useState([])
   const [downloadStatus, setDownloadStatus] = useState(null)
@@ -206,6 +207,32 @@ export default function App() {
 
   const clearAll = useCallback(() => setItems([]), [])
 
+  const handlePatternChange = useCallback(
+    (id) => {
+      setPreferredPattern(id)
+      const list = itemsRef.current
+      if (list.length === 0) return
+      const dateStr = new Date().toISOString().slice(0, 10)
+      setItems((prev) =>
+        prev.map((it, index) => {
+          const { stem } = splitFilename(it.originalName)
+          const base = it.newStem || stem
+          const { stem: outStem, datePrefix } = applyNamingPattern(id, base, {
+            index,
+            dateStr,
+          })
+          return {
+            ...it,
+            newStem: outStem,
+            datePrefix: id === 'date' ? datePrefix : null,
+            suggested: false,
+          }
+        }),
+      )
+    },
+    [setPreferredPattern],
+  )
+
   const applyOwnerToAll = useCallback(() => {
     const list = itemsRef.current
     if (list.length === 0) return
@@ -218,27 +245,6 @@ export default function App() {
     setRecentOwners((r) => pushRecentOwner(first, r))
     pushToast(`Owner "${first}" applied to all files.`, 'success')
   }, [pushToast, setRecentOwners])
-
-  const applyPattern = useCallback(() => {
-    const dateStr = new Date().toISOString().slice(0, 10)
-    setItems((prev) =>
-      prev.map((it, index) => {
-        const { stem } = splitFilename(it.originalName)
-        const base = it.newStem || stem
-        const { stem: outStem, datePrefix } = applyNamingPattern(preferredPattern, base, {
-          index,
-          dateStr,
-        })
-        return {
-          ...it,
-          newStem: outStem,
-          datePrefix: preferredPattern === 'date' ? datePrefix : null,
-          suggested: false,
-        }
-      }),
-    )
-    pushToast('Pattern applied.', 'success')
-  }, [preferredPattern, pushToast])
 
   const handleAISuggest = useCallback(async () => {
     resetError()
@@ -321,24 +327,24 @@ export default function App() {
     pushToast('Recent owner history cleared.', 'success')
   }, [pushToast, setRecentOwners])
 
-  const listForUi = useMemo(
-    () =>
-      items.map((it) => ({
-        id: it.id,
-        originalName: it.originalName,
-        size: it.file.size,
-        mime: it.file.type || 'application/octet-stream',
-        newStem: it.newStem,
-        owner: it.owner,
-        suggested: it.suggested,
-      })),
-    [items],
-  )
+  const listForUi = useMemo(() => {
+    const previews = computeFinalNames(items)
+    return items.map((it, i) => ({
+      id: it.id,
+      originalName: it.originalName,
+      size: it.file.size,
+      mime: it.file.type || 'application/octet-stream',
+      newStem: it.newStem,
+      owner: it.owner,
+      suggested: it.suggested,
+      previewName: previews[i],
+    }))
+  }, [items])
 
   const token = getStoredToken()
 
   return (
-    <div className="min-h-svh bg-slate-100 font-sans text-slate-900">
+    <div className="min-h-svh bg-[#f3f4f6] font-sans text-slate-900">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow"
@@ -346,59 +352,74 @@ export default function App() {
         Skip to main content
       </a>
 
-      <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <Header
-            user={user}
-            onSignIn={() => {
-              setShowRegister(false)
-              setShowLogin(true)
-            }}
-            onSignUp={() => {
-              setShowLogin(false)
-              setShowRegister(true)
-            }}
-            onSignOut={handleSignOut}
-            onManageBilling={handleManageBilling}
-            onOpenPricing={() => setPricingOpen(true)}
-          />
-        </div>
+      <div className="mx-auto max-w-3xl px-4 pb-12 pt-6 sm:px-6 lg:max-w-4xl">
+        <Header
+          user={user}
+          onSignIn={() => {
+            setShowRegister(false)
+            setShowLogin(true)
+          }}
+          onSignUp={() => {
+            setShowLogin(false)
+            setShowRegister(true)
+          }}
+          onSignOut={handleSignOut}
+          onManageBilling={handleManageBilling}
+          onOpenPricing={() => setPricingOpen(true)}
+        />
 
-        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <Hero />
+
+        <section className="mt-2 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-5">
           <h2 className="sr-only">Account</h2>
           {!authReady ? (
             <p className="text-sm text-slate-600">Loading session…</p>
           ) : (
-            <details className="group rounded-lg border border-slate-200 bg-slate-50/80 p-4">
-              <summary className="cursor-pointer list-none font-medium text-slate-800 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-violet-500 [&::-webkit-details-marker]:hidden">
-                Settings — account &amp; owner history
+            <details className="group rounded-xl border border-slate-100 bg-slate-50/90 p-3">
+              <summary className="cursor-pointer list-none text-sm font-medium text-slate-700 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-violet-400 [&::-webkit-details-marker]:hidden">
+                Account &amp; more options
               </summary>
-              <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
-                <p className="text-sm text-slate-600">
-                  AI renames run on our servers with your account — no API key needed in the browser. Sign in above to
-                  get monthly credits based on your plan.
+              <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
+                <p className="text-xs text-slate-600">
+                  Sign in for AI rename credits. Owner labels and extra actions are below.
                 </p>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={applyOwnerToAll}
+                    disabled={items.length === 0 || busy}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Apply owner to all
+                  </button>
                   <button
                     type="button"
                     onClick={clearOwnerHistory}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 hover:bg-slate-50"
                   >
                     Clear owner history
                   </button>
-                  {recentOwners.length > 0 && (
-                    <p className="text-xs text-slate-500">
-                      Recent: {recentOwners.slice(0, 5).join(', ')}
-                      {recentOwners.length > 5 ? '…' : ''}
-                    </p>
-                  )}
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    disabled={items.length === 0 || busy}
+                    className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    Clear all files
+                  </button>
                 </div>
+                {recentOwners.length > 0 && (
+                  <p className="text-xs text-slate-500">
+                    Recent: {recentOwners.slice(0, 5).join(', ')}
+                    {recentOwners.length > 5 ? '…' : ''}
+                  </p>
+                )}
               </div>
             </details>
           )}
         </section>
 
-        <main id="main" className="mt-8 space-y-6">
+        <main id="main" className="mt-6 space-y-5">
           {usageLimitedBanner && (
             <UpgradePrompt onUpgrade={() => setPricingOpen(true)} onDismiss={() => setUsageLimitedBanner(false)} />
           )}
@@ -428,11 +449,8 @@ export default function App() {
                 : processingLabel
             }
             pattern={preferredPattern}
-            onPatternChange={(id) => setPreferredPattern(id)}
+            onPatternChange={handlePatternChange}
             onAISuggest={handleAISuggest}
-            onApplyPattern={applyPattern}
-            onApplyOwnerToAll={applyOwnerToAll}
-            onClearAll={clearAll}
             onDownloadAll={handleDownloadAll}
           />
 
@@ -445,8 +463,8 @@ export default function App() {
           />
         </main>
 
-        <footer className="mt-12 pb-6 text-center text-xs text-slate-500">
-          Files stay in your browser. Keyboard: Ctrl+Enter to download all.
+        <footer className="mt-10 text-center text-xs text-slate-500">
+          Files stay in your browser. Ctrl+Enter to download all.
         </footer>
       </div>
 

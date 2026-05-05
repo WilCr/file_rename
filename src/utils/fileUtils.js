@@ -85,10 +85,25 @@ export function resolveDuplicateNames(fullNames) {
 }
 
 /**
- * @param {string} mime
+ * Short label for file rows (PDF, DOC, IMG, …)
  * @param {string} name
- * @returns {'image'|'document'|'spreadsheet'|'presentation'|'archive'|'code'|'audio'|'video'|'other'}
+ * @param {string} mime
  */
+export function getTypeBadgeLabel(name, mime) {
+  const { ext } = splitFilename(name)
+  const e = ext.replace(/^\./, '').toUpperCase()
+  if (e === 'PDF') return 'PDF'
+  if (e === 'DOC' || e === 'DOCX') return 'DOC'
+  if (mime.startsWith('image/') || /^(JPG|JPEG|PNG|GIF|WEBP|SVG|HEIC)$/i.test(e)) return 'IMG'
+  if (/^(XLS|XLSX|CSV)$/i.test(e)) return 'XLS'
+  if (/^(PPT|PPTX)$/i.test(e)) return 'PPT'
+  if (mime.startsWith('video/') || /^(MP4|MOV|WEBM|MKV)$/i.test(e)) return 'VID'
+  if (mime.startsWith('audio/') || /^(MP3|WAV|FLAC|AAC|OGG)$/i.test(e)) return 'AUD'
+  if (/^(ZIP|RAR|7Z|TAR|GZ)$/i.test(e)) return 'ZIP'
+  if (e && e.length <= 4) return e.slice(0, 4)
+  return 'FILE'
+}
+
 export function getFileCategory(mime, name) {
   if (mime.startsWith('image/')) return 'image'
   if (mime.startsWith('audio/')) return 'audio'

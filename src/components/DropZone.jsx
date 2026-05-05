@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { Upload } from 'lucide-react'
+import { ArrowDown } from 'lucide-react'
 
 /**
  * @param {{
@@ -51,29 +51,35 @@ export function DropZone({ disabled, isDragging, onDraggingChange, onFiles }) {
     [onFiles],
   )
 
+  const openFilePicker = useCallback(
+    (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!disabled) inputRef.current?.click()
+    },
+    [disabled],
+  )
+
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-label="Drop files here or click to browse"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      onClick={() => !disabled && inputRef.current?.click()}
       onKeyDown={(e) => {
+        if (disabled) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           inputRef.current?.click()
         }
       }}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onClick={() => !disabled && inputRef.current?.click()}
+      role="presentation"
+      tabIndex={disabled ? -1 : 0}
+      aria-label="Drop files here or click to browse"
       className={[
-        'group relative cursor-pointer rounded-2xl border-2 border-dashed px-6 py-14 transition-all duration-200',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-500',
-        disabled
-          ? 'cursor-not-allowed border-slate-200 bg-slate-50/50 opacity-60'
-          : isDragging
-            ? 'scale-[1.02] border-violet-500 bg-violet-50/80 shadow-lg shadow-violet-500/15'
-            : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50/80',
+        'cursor-pointer rounded-2xl border-2 border-dashed px-6 py-12 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 sm:py-14',
+        disabled ? 'cursor-not-allowed border-slate-200 bg-slate-100/50 opacity-60' : 'cursor-pointer border-slate-300 bg-white',
+        !disabled && isDragging ? 'scale-[1.01] border-violet-400 bg-violet-50/40' : '',
       ].join(' ')}
     >
       <input
@@ -86,19 +92,37 @@ export function DropZone({ disabled, isDragging, onDraggingChange, onFiles }) {
         disabled={disabled}
         onChange={handleChange}
       />
-      <div className="flex flex-col items-center gap-3 text-center">
-        <span
+      <div className="flex flex-col items-center gap-4 text-center">
+        <div
           className={[
-            'inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200',
-            isDragging ? 'scale-110 bg-violet-100 text-violet-600' : 'bg-slate-100 text-slate-500 group-hover:bg-violet-100 group-hover:text-violet-600',
+            'flex h-16 w-16 items-center justify-center rounded-full shadow-md transition-transform',
+            isDragging ? 'scale-105 bg-violet-700' : 'bg-violet-600',
           ].join(' ')}
           aria-hidden
         >
-          <Upload className="h-7 w-7" strokeWidth={1.75} />
-        </span>
+          <ArrowDown className="h-7 w-7 text-white" strokeWidth={2.25} />
+        </div>
         <div>
-          <p className="font-medium text-slate-800">Drag & drop files here</p>
-          <p className="mt-1 text-sm text-slate-500">or click to choose — multiple files supported</p>
+          <p className="text-base font-semibold text-slate-900">Drag & drop files here</p>
+          <p className="mt-2 text-sm text-slate-500">
+            or{' '}
+            <span
+              role="button"
+              tabIndex={disabled ? -1 : 0}
+              onClick={openFilePicker}
+              onKeyDown={(e) => {
+                if (disabled) return
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  openFilePicker(e)
+                }
+              }}
+              className={`font-medium text-blue-600 underline decoration-blue-400/50 underline-offset-2 hover:text-blue-700 ${disabled ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}
+            >
+              click to browse
+            </span>{' '}
+            — PDF, DOCX, images, any file type
+          </p>
         </div>
       </div>
     </div>
