@@ -1,10 +1,7 @@
 import { signToken, verifyPassword } from '../../lib/server/auth.js'
+import { getJsonBody, mapAuthDbError } from '../../lib/server/parseBody.js'
 import { prisma } from '../../lib/server/prisma.js'
 
-/**
- * @param {import('@vercel/node').VercelRequest} req
- * @param {import('@vercel/node').VercelResponse} res
- */
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'POST, OPTIONS')
@@ -15,7 +12,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, password } = req.body || {}
+    const body = getJsonBody(req)
+    const { email, password } = body
     if (!email || typeof email !== 'string' || !password) {
       return res.status(400).json({ error: 'Email and password are required' })
     }
@@ -44,6 +42,12 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('login:', err)
-    return res.status(500).json({ error: 'Login failed' })
+    const mapped = mapAuthDbError(err)
+    return res.status(500).json({
+      error: mapped || 'Login failed',
+      ...(mapped ? { detail: mapped } : process.env.NODE_ENV !== 'production' && err instanceof Error
+        ? { detail: err.message.slice(0, 200) }
+        : {}),
+    })
   }
 }

@@ -35,9 +35,25 @@ export async function register(email, password, name) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name }),
   })
-  const data = await res.json().catch(() => ({}))
+  const contentType = res.headers.get('content-type') || ''
+  let data = {}
+  if (contentType.includes('application/json')) {
+    data = await res.json().catch(() => ({}))
+  } else {
+    const text = await res.text().catch(() => '')
+    if (!res.ok) {
+      const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 160)
+      throw new Error(snippet || `Request failed (${res.status})`)
+    }
+    try {
+      data = text ? JSON.parse(text) : {}
+    } catch {
+      data = {}
+    }
+  }
   if (!res.ok) {
-    throw new Error(data.error || 'Registration failed')
+    const hint = [data.error, data.detail].filter(Boolean).join(' — ')
+    throw new Error(hint || `Registration failed (${res.status})`)
   }
   setStoredToken(data.token)
   return data
@@ -54,9 +70,25 @@ export async function login(email, password) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  const data = await res.json().catch(() => ({}))
+  const contentType = res.headers.get('content-type') || ''
+  let data = {}
+  if (contentType.includes('application/json')) {
+    data = await res.json().catch(() => ({}))
+  } else {
+    const text = await res.text().catch(() => '')
+    if (!res.ok) {
+      const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 160)
+      throw new Error(snippet || `Request failed (${res.status})`)
+    }
+    try {
+      data = text ? JSON.parse(text) : {}
+    } catch {
+      data = {}
+    }
+  }
   if (!res.ok) {
-    throw new Error(data.error || 'Login failed')
+    const hint = [data.error, data.detail].filter(Boolean).join(' — ')
+    throw new Error(hint || `Login failed (${res.status})`)
   }
   setStoredToken(data.token)
   return data

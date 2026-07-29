@@ -1,10 +1,7 @@
 import { hashPassword, signToken } from '../../lib/server/auth.js'
+import { getJsonBody, mapAuthDbError } from '../../lib/server/parseBody.js'
 import { prisma } from '../../lib/server/prisma.js'
 
-/**
- * @param {import('@vercel/node').VercelRequest} req
- * @param {import('@vercel/node').VercelResponse} res
- */
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'POST, OPTIONS')
@@ -15,7 +12,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, password, name } = req.body || {}
+    const body = getJsonBody(req)
+    const { email, password, name } = body
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ error: 'Valid email is required' })
     }
@@ -51,6 +49,16 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('register:', err)
-    return res.status(500).json({ error: 'Registration failed' })
+    const mapped = mapAuthDbError(err)
+    const msg = typeof err?.message === 'string' ? err.message : ''
+    // Always surface config/auth misconfiguration — otherwise users only see "Registration failed"
+    const detail =
+      mapped ||
+      (msg.includes('JWT_SECRET') ? 'JWT_SECRET is not set on the server' : null) ||
+      (process.env.NODE_ENV !== 'production' && err instanceof Error ? err.message.slice(0, 200) : null)
+    return res.status(500).json({
+      error: mapped || 'Registration failed',
+      ...(detail ? { detail } : {}),
+    })
   }
 }
