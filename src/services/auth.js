@@ -52,11 +52,22 @@ export async function register(email, password, name) {
     }
   }
   if (!res.ok) {
-    const hint = [data.error, data.detail].filter(Boolean).join(' — ')
-    throw new Error(hint || `Registration failed (${res.status})`)
+    throw new Error(formatApiError(data, `Registration failed (${res.status})`))
   }
   setStoredToken(data.token)
   return data
+}
+
+/**
+ * Prefer a single clear message (avoid "error — error" when detail duplicates error).
+ * @param {{ error?: string, detail?: string }} data
+ * @param {string} fallback
+ */
+function formatApiError(data, fallback) {
+  const error = typeof data?.error === 'string' ? data.error.trim() : ''
+  const detail = typeof data?.detail === 'string' ? data.detail.trim() : ''
+  if (error && detail && error !== detail) return `${error} — ${detail}`
+  return error || detail || fallback
 }
 
 /**
@@ -87,8 +98,7 @@ export async function login(email, password) {
     }
   }
   if (!res.ok) {
-    const hint = [data.error, data.detail].filter(Boolean).join(' — ')
-    throw new Error(hint || `Login failed (${res.status})`)
+    throw new Error(formatApiError(data, `Login failed (${res.status})`))
   }
   setStoredToken(data.token)
   return data
