@@ -2,23 +2,26 @@ import { useState } from 'react'
 import { requestPasswordReset } from '../../services/auth'
 
 /**
- * @param {{ onClose: () => void }} props
+ * @param {{ onClose: () => void, onSwitchToLogin?: () => void }} props
  */
-export default function ForgotPassword({ onClose }) {
+export default function ForgotPassword({ onClose, onSwitchToLogin }) {
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [devResetUrl, setDevResetUrl] = useState(null)
+  const [emailSent, setEmailSent] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     setDevResetUrl(null)
+    setEmailSent(null)
     try {
       const data = await requestPasswordReset(email)
       setDone(true)
+      setEmailSent(data.emailSent === true)
       if (data.devResetUrl) {
         setDevResetUrl(data.devResetUrl)
       }
@@ -82,18 +85,29 @@ export default function ForgotPassword({ onClose }) {
                 </button>
               </div>
             </form>
+            {onSwitchToLogin && (
+              <p className="mt-4 text-sm text-slate-600">
+                Remembered your password?{' '}
+                <button type="button" onClick={onSwitchToLogin} className="text-violet-600 hover:underline">
+                  Sign in
+                </button>
+              </p>
+            )}
           </>
         ) : (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-slate-600">
-              If an account exists for that email, a reset link has been sent. Check your inbox (and spam folder).
+              {emailSent
+                ? 'If an account exists for that email, a reset link has been sent. Check your inbox and spam folder.'
+                : 'If an account exists for that email, a reset link was prepared. Check your inbox and spam folder.'}
             </p>
             {devResetUrl && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-                <p className="font-medium">Development mode</p>
+                <p className="font-medium">Email was not sent (dev / missing mail config)</p>
                 <p className="mt-1 text-amber-900/90">
-                  Email was not sent (configure <code className="rounded bg-amber-100 px-1">RESEND_API_KEY</code> and{' '}
-                  <code className="rounded bg-amber-100 px-1">EMAIL_FROM</code>). Open this link to reset:
+                  Set <code className="rounded bg-amber-100 px-1">RESEND_API_KEY</code> and{' '}
+                  <code className="rounded bg-amber-100 px-1">EMAIL_FROM</code> on the server. For now, open this
+                  one-time link:
                 </p>
                 <a
                   href={devResetUrl}

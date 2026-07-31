@@ -121,7 +121,7 @@ export async function requestPasswordReset(email) {
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data.error || 'Request failed')
+    throw new Error(formatApiError(data, 'Request failed'))
   }
   return data
 }

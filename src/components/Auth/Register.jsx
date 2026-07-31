@@ -24,7 +24,12 @@ export default function Register({ onClose, onSuccess, onSwitchToLogin }) {
       onSuccess(data)
       onClose()
     } catch (err) {
-      setError(err?.message || 'Registration failed')
+      const msg = err?.message || 'Registration failed'
+      setError(
+        msg.includes('already registered')
+          ? 'Email already registered. Use Sign in, or Reset password if you forgot it.'
+          : msg,
+      )
     } finally {
       setLoading(false)
     }

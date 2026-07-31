@@ -494,7 +494,15 @@ export default function App() {
           }}
         />
       )}
-      {showForgot && <ForgotPassword onClose={() => setShowForgot(false)} />}
+      {showForgot && (
+        <ForgotPassword
+          onClose={() => setShowForgot(false)}
+          onSwitchToLogin={() => {
+            setShowForgot(false)
+            setShowLogin(true)
+          }}
+        />
+      )}
       {showResetPassword && resetToken && (
         <ResetPassword
           token={resetToken}
