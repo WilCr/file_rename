@@ -73,12 +73,19 @@ export default async function handler(req, res) {
 
     const result = await sendPasswordResetEmail(user.email, resetUrl)
     if (!result.ok) {
-      console.error('[forgot-password] send failed:', result.reason, result.status)
+      console.error('[forgot-password] send failed:', result.reason, result.status, result.message)
+      if (result.reason === 'invalid_from') {
+        return res.status(503).json({
+          error: result.message || 'EMAIL_FROM is invalid. Use an email address, not a URL.',
+          code: 'EMAIL_NOT_CONFIGURED',
+        })
+      }
       return res.status(502).json({
         error:
-          result.reason === 'provider_error'
+          result.message ||
+          (result.reason === 'provider_error'
             ? 'Could not send reset email (email provider rejected the request). Check RESEND_API_KEY, EMAIL_FROM, and Resend domain verification.'
-            : 'Could not send reset email. Please try again in a moment.',
+            : 'Could not send reset email. Please try again in a moment.'),
         code: 'EMAIL_SEND_FAILED',
       })
     }
