@@ -1,5 +1,8 @@
 {
+  "framework": "vite",
+  "buildCommand": "prisma generate && vite build",
+  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
