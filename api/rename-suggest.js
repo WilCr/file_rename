@@ -43,8 +43,9 @@ First identify what the document is. Examples: property title, warranty deed, qu
 Then build the filename from the details you can actually see, in this order, skipping anything the document does not show:
 1. Main party, owner, or property address
 2. Document type, e.g. Property_Title, Warranty_Deed, Promissory_Note, Invoice
-3. Reference, instrument, policy, or account number
-4. Date as DD-MM-YYYY
+3. The organisation or counterparty it concerns, when that is someone else, e.g. the employer, lender, insurer, or vendor
+4. Reference, instrument, policy, or account number
+5. Date as DD-MM-YYYY
 
 Example of the target style: Angel_J_Perez_Lopez_Note_2411041846_20-02-2025${ext || '.pdf'}
 

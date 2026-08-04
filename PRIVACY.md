@@ -11,10 +11,13 @@ uploaded.
 
 **AI suggest names is the one exception.** When you use it, the file is sent to
 our server and passed to Anthropic's Claude API, which reads it to identify the
-document and propose a name. This applies to PDFs, images (JPEG, PNG, GIF,
-WebP), and plain-text formats up to 3 MB; for text files only the first 20,000
-characters are sent. Anything larger, or in an unsupported format such as DOCX,
-is not sent — we ask for a name based on the filename alone.
+document and propose a name.
+
+PDFs and images (JPEG, PNG, GIF, WebP) up to 3 MB are uploaded as they are.
+Word documents (`.docx`) and plain-text files are opened in your browser first,
+and only the text found inside is uploaded — at most the first 20,000
+characters, never the file itself. Anything larger, or in another format, is not
+sent at all; we ask for a name based on the filename alone.
 
 We do not keep your files. They exist in memory only for the length of the
 request and are never written to our database or to disk. We record only that a
