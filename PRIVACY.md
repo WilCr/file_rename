@@ -73,4 +73,5 @@ account**. This permanently removes your email, password hash, usage history,
 and any pending reset links, and cancels an active subscription. It cannot be
 undone.
 
-To ask what data we hold about you, contact [YOUR CONTACT EMAIL].
+To ask what data we hold about you, contact
+[curvedspaceservices@gmail.com](mailto:curvedspaceservices@gmail.com).
