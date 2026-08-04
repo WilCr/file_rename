@@ -161,7 +161,9 @@ export function applyNamingPattern(pattern, stem, ctx) {
   const today = dateStr || new Date().toISOString().slice(0, 10)
   switch (pattern) {
     case 'date': {
-      const rest = sanitizeSegment(stem).toLowerCase().replace(/\s+/g, '_')
+      // Casing is decided later by buildFullFilename, which keeps it only for
+      // AI-suggested names.
+      const rest = sanitizeSegment(stem).replace(/\s+/g, '_')
       return { stem: rest, datePrefix: today }
     }
     case 'sequential': {
@@ -175,7 +177,7 @@ export function applyNamingPattern(pattern, stem, ctx) {
       }
     case 'clean':
       return {
-        stem: cleanStem(sanitizeSegment(stem)).toLowerCase(),
+        stem: cleanStem(sanitizeSegment(stem)),
         datePrefix: null,
       }
     default:

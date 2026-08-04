@@ -31,6 +31,21 @@ function randomId() {
   return crypto.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+/**
+ * Patterns always transform `baseStem` (the original name, or the AI suggestion
+ * once there is one) rather than the previous pattern's output, so switching
+ * between patterns stays reversible.
+ */
+function withPattern(item, pattern, index, dateStr) {
+  const base = item.baseStem || splitFilename(item.originalName).stem
+  const { stem, datePrefix } = applyNamingPattern(pattern, base, { index, dateStr })
+  return { ...item, newStem: stem, datePrefix }
+}
+
 function computeFinalNames(items) {
   const previews = items.map((it) => {
     const { stem: origStem, ext } = splitFilename(it.originalName)
@@ -174,30 +189,37 @@ export default function App() {
   const addFiles = useCallback(
     (fileList) => {
       const arr = Array.from(fileList)
-      const next = arr.map((file) => {
+      for (const file of arr) {
         if (file.size > LARGE_FILE_BYTES) {
           pushToast(`"${file.name}" is over 50MB — rename still works, but downloads may be slow.`, 'info')
         }
-        const { stem } = splitFilename(file.name)
-        return {
-          id: randomId(),
-          file,
-          originalName: file.name,
-          newStem: stem,
-          owner: '',
-          suggested: false,
-          datePrefix: null,
-        }
+      }
+      const dateStr = todayStr()
+      setItems((prev) => {
+        const next = arr.map((file, i) => {
+          const { stem } = splitFilename(file.name)
+          const item = {
+            id: randomId(),
+            file,
+            originalName: file.name,
+            baseStem: stem,
+            newStem: stem,
+            owner: '',
+            suggested: false,
+            datePrefix: null,
+          }
+          return withPattern(item, preferredPattern, prev.length + i, dateStr)
+        })
+        return [...prev, ...next]
       })
-      setItems((prev) => [...prev, ...next])
     },
-    [pushToast],
+    [preferredPattern, pushToast],
   )
 
   const updateStem = useCallback((id, v) => {
     setItems((prev) =>
       prev.map((it) =>
-        it.id === id ? { ...it, newStem: v, suggested: false, datePrefix: null } : it,
+        it.id === id ? { ...it, baseStem: v, newStem: v, suggested: false, datePrefix: null } : it,
       ),
     )
   }, [])
@@ -217,23 +239,8 @@ export default function App() {
       setPreferredPattern(id)
       const list = itemsRef.current
       if (list.length === 0) return
-      const dateStr = new Date().toISOString().slice(0, 10)
-      setItems((prev) =>
-        prev.map((it, index) => {
-          const { stem } = splitFilename(it.originalName)
-          const base = it.newStem || stem
-          const { stem: outStem, datePrefix } = applyNamingPattern(id, base, {
-            index,
-            dateStr,
-          })
-          return {
-            ...it,
-            newStem: outStem,
-            datePrefix: id === 'date' ? datePrefix : null,
-            suggested: false,
-          }
-        }),
-      )
+      const dateStr = todayStr()
+      setItems((prev) => prev.map((it, index) => withPattern(it, id, index, dateStr)))
     },
     [setPreferredPattern],
   )
@@ -261,16 +268,17 @@ export default function App() {
       pushToast('Sign in to use AI rename.', 'info')
       return
     }
+    const dateStr = todayStr()
     const result = await runAISuggestions(list, (id, update) => {
       setItems((prev) =>
-        prev.map((it) =>
+        prev.map((it, index) =>
           it.id === id
-            ? {
-                ...it,
-                newStem: update.newStem,
-                suggested: update.suggested,
-                datePrefix: update.datePrefix ?? it.datePrefix,
-              }
+            ? withPattern(
+                { ...it, baseStem: update.newStem, suggested: update.suggested },
+                preferredPattern,
+                index,
+                dateStr,
+              )
             : it,
         ),
       )
@@ -282,7 +290,7 @@ export default function App() {
       setUsageLimitedBanner(true)
       setPricingOpen(true)
     }
-  }, [pushToast, resetError, runAISuggestions])
+  }, [preferredPattern, pushToast, resetError, runAISuggestions])
 
   const handleDownloadAll = useCallback(async () => {
     const list = itemsRef.current
