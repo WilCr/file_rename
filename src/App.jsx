@@ -465,7 +465,8 @@ export default function App() {
         </main>
 
         <footer className="mt-10 text-center text-xs text-slate-500">
-          Files stay in your browser. Ctrl+Enter to download all.
+          Files stay in your browser, except when AI suggest sends them for analysis.
+          Ctrl+Enter to download all.
         </footer>
       </div>
 

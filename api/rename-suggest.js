@@ -4,7 +4,11 @@ import { getJsonBody } from '../lib/server/parseBody.js'
 import { getUsageState, incrementUsage } from '../lib/server/usage.js'
 import { prisma } from '../lib/server/prisma.js'
 
-const MODEL = 'claude-sonnet-4-20250514'
+const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929'
+const MODEL =
+  typeof process.env.CLAUDE_MODEL === 'string' && process.env.CLAUDE_MODEL.trim()
+    ? process.env.CLAUDE_MODEL.trim()
+    : DEFAULT_MODEL
 const IMAGE_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 
 export const config = { maxDuration: 60 }
@@ -147,11 +151,23 @@ export default async function handler(req, res) {
     if (status === 401 || status === 403) {
       return res.status(503).json({ error: 'AI provider rejected the API key. Check CLAUDE_API_KEY.' })
     }
+    if (status === 404) {
+      return res.status(503).json({
+        error: `AI model "${MODEL}" is not available to this API key. Set CLAUDE_MODEL to a model your account can use.`,
+        code: 'AI_MODEL_UNAVAILABLE',
+      })
+    }
     if (status === 413) {
       return res.status(413).json({ error: 'Document is too large to analyse.' })
     }
     if (status === 429) {
       return res.status(429).json({ error: 'AI provider is rate limiting. Try again shortly.' })
+    }
+    if (status === 400) {
+      const detail = typeof err?.error?.error?.message === 'string' ? err.error.error.message : ''
+      return res.status(502).json({
+        error: detail ? `AI provider rejected the request: ${detail.slice(0, 200)}` : 'AI provider rejected the request.',
+      })
     }
     return res.status(500).json({ error: 'Internal server error' })
   }
