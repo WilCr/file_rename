@@ -22,11 +22,16 @@ export default async function handler(req, res) {
   )
   const emailConfigured = isEmailConfigured()
   const appUrlConfigured = Boolean(typeof process.env.APP_URL === 'string' && process.env.APP_URL.trim())
+  const claudeConfigured = Boolean(
+    (typeof process.env.CLAUDE_API_KEY === 'string' && process.env.CLAUDE_API_KEY.trim()) ||
+      (typeof process.env.ANTHROPIC_API_KEY === 'string' && process.env.ANTHROPIC_API_KEY.trim()),
+  )
 
   return res.status(200).json({
     ok: jwtConfigured && databaseConfigured,
     jwtConfigured,
     databaseConfigured,
+    claudeConfigured,
     emailConfigured,
     appUrlConfigured,
   })

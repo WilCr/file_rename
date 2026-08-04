@@ -39,6 +39,7 @@ function computeFinalNames(items) {
       owner: it.owner,
       stem: stemUse,
       ext: extUse,
+      preserveCase: it.suggested === true,
     })
   })
   return resolveDuplicateNames(previews)

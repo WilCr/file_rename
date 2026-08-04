@@ -43,13 +43,15 @@ export function cleanStem(stem) {
 }
 
 /**
- * Build final filename: optional date prefix, optional owner, then stem. All sanitized, lowercase.
- * @param {{ datePrefix?: string | null, owner?: string, stem: string, ext: string }} p
+ * Build final filename: optional date prefix, optional owner, then stem.
+ * Lowercased unless `preserveCase` is set (AI suggestions carry meaningful capitalisation).
+ * @param {{ datePrefix?: string | null, owner?: string, stem: string, ext: string, preserveCase?: boolean }} p
  * @returns {string}
  */
-export function buildFullFilename({ datePrefix, owner, stem, ext }) {
-  const s = sanitizeSegment(stem).toLowerCase()
-  const o = owner ? sanitizeSegment(owner).toLowerCase() : ''
+export function buildFullFilename({ datePrefix, owner, stem, ext, preserveCase }) {
+  const casing = (v) => (preserveCase ? v : v.toLowerCase())
+  const s = casing(sanitizeSegment(stem))
+  const o = owner ? casing(sanitizeSegment(owner)) : ''
   /** @type {string[]} */
   const parts = []
   if (datePrefix) {

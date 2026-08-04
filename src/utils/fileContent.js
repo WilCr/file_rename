@@ -1,0 +1,74 @@
+import { splitFilename } from './fileUtils'
+
+/** Serverless request bodies are capped (~4.5MB); base64 adds ~33% overhead. */
+export const MAX_INLINE_BYTES = 3 * 1024 * 1024
+const MAX_TEXT_CHARS = 20_000
+
+const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp'])
+const TEXT_MIME = new Set(['application/json', 'application/xml', 'application/csv'])
+const TEXT_EXT = new Set([
+  '.txt',
+  '.md',
+  '.csv',
+  '.json',
+  '.xml',
+  '.html',
+  '.htm',
+  '.log',
+  '.yml',
+  '.yaml',
+])
+
+/**
+ * @param {File} file
+ */
+function readAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error(`Could not read "${file.name}"`))
+    reader.onload = () => {
+      const result = String(reader.result || '')
+      const comma = result.indexOf(',')
+      resolve(comma >= 0 ? result.slice(comma + 1) : '')
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+/**
+ * Extract content the AI can actually analyse. Falls back to `null` so the
+ * caller can still request a filename-only suggestion.
+ *
+ * @param {File} file
+ * @returns {Promise<{ kind: 'pdf' | 'image' | 'text', data: string, mediaType?: string } | null>}
+ */
+export async function readFileForAI(file) {
+  const { ext } = splitFilename(file.name)
+  const mime = file.type || ''
+
+  const isPdf = mime === 'application/pdf' || ext === '.pdf'
+  const isImage = IMAGE_MIME.has(mime) || IMAGE_EXT.has(ext)
+  const isText = mime.startsWith('text/') || TEXT_MIME.has(mime) || TEXT_EXT.has(ext)
+
+  if (!isPdf && !isImage && !isText) return null
+  if (file.size > MAX_INLINE_BYTES) return null
+
+  try {
+    if (isText) {
+      const text = await file.text()
+      const trimmed = text.slice(0, MAX_TEXT_CHARS)
+      return trimmed.trim() ? { kind: 'text', data: trimmed } : null
+    }
+
+    const data = await readAsBase64(file)
+    if (!data) return null
+
+    if (isPdf) {
+      return { kind: 'pdf', data, mediaType: 'application/pdf' }
+    }
+    return { kind: 'image', data, mediaType: IMAGE_MIME.has(mime) ? mime : 'image/png' }
+  } catch {
+    return null
+  }
+}

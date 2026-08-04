@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { getAISuggestion, UsageLimitError } from '../services/api'
+import { readFileForAI } from '../utils/fileContent'
 import { formatFileSize, splitFilename } from '../utils/fileUtils'
 
 /**
@@ -51,9 +52,11 @@ export function useFileProcessor({ getToken, onUsageUpdate }) {
           const file = entry.file
           const typeLabel = file.type || 'unknown'
           const sizeLabel = formatFileSize(file.size)
+          const content = await readFileForAI(file)
           const data = await getAISuggestion(file.name, typeLabel, sizeLabel, {
             signal,
             token,
+            content,
           })
           const suggested = typeof data.suggestion === 'string' ? data.suggestion : ''
           const { stem } = splitFilename(suggested)

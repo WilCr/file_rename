@@ -15,7 +15,11 @@ export class UsageLimitError extends Error {
  * @param {string} filename
  * @param {string} fileType
  * @param {string} fileSize
- * @param {{ signal?: AbortSignal, token?: string }} [opts]
+ * @param {{
+ *   signal?: AbortSignal,
+ *   token?: string,
+ *   content?: { kind: string, data: string, mediaType?: string } | null,
+ * }} [opts]
  */
 export async function getAISuggestion(filename, fileType, fileSize, opts = {}) {
   const token = opts.token ?? getAuthToken()
@@ -23,15 +27,23 @@ export async function getAISuggestion(filename, fileType, fileSize, opts = {}) {
     throw new Error('Sign in to use AI rename.')
   }
 
-  const res = await fetch(`${API_BASE_URL}/rename-suggest`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ filename, fileType, fileSize }),
-    signal: opts.signal,
-  })
+  const send = (content) =>
+    fetch(`${API_BASE_URL}/rename-suggest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ filename, fileType, fileSize, content }),
+      signal: opts.signal,
+    })
+
+  let res = await send(opts.content ?? null)
+
+  // Oversized documents still deserve a name, so retry without the attachment.
+  if (res.status === 413 && opts.content) {
+    res = await send(null)
+  }
 
   const data = await res.json().catch(() => ({}))
 
