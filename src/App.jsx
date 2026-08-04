@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import DeleteAccount from './components/Auth/DeleteAccount'
 import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
 import ForgotPassword from './components/Auth/ForgotPassword'
@@ -9,6 +10,7 @@ import { FileList } from './components/FileList'
 import { Header } from './components/Header'
 import Hero from './components/Hero'
 import PricingModal from './components/Paywall/PricingModal'
+import PrivacyModal from './components/PrivacyModal'
 import UpgradePrompt from './components/Paywall/UpgradePrompt'
 import UsageIndicator from './components/Paywall/UsageIndicator'
 import { ToastContainer } from './components/Toast'
@@ -55,6 +57,8 @@ export default function App() {
   const [showForgot, setShowForgot] = useState(false)
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [resetToken, setResetToken] = useState(null)
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [usageLimitedBanner, setUsageLimitedBanner] = useState(false)
   const [usageRefreshKey, setUsageRefreshKey] = useState(0)
@@ -408,6 +412,15 @@ export default function App() {
                   >
                     Clear all files
                   </button>
+                  {user && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteAccount(true)}
+                      className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-800 hover:bg-red-100"
+                    >
+                      Delete account
+                    </button>
+                  )}
                 </div>
                 {recentOwners.length > 0 && (
                   <p className="text-xs text-slate-500">
@@ -464,9 +477,18 @@ export default function App() {
           />
         </main>
 
-        <footer className="mt-10 text-center text-xs text-slate-500">
-          Files stay in your browser, except when AI suggest sends them for analysis.
-          Ctrl+Enter to download all.
+        <footer className="mt-10 space-y-1 text-center text-xs text-slate-500">
+          <p>
+            Files stay in your browser, except when AI suggest sends them for analysis.
+            Ctrl+Enter to download all.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowPrivacy(true)}
+            className="text-violet-600 underline hover:text-violet-500"
+          >
+            Privacy note
+          </button>
         </footer>
       </div>
 
@@ -518,6 +540,20 @@ export default function App() {
           }}
         />
       )}
+      {showDeleteAccount && token && (
+        <DeleteAccount
+          token={token}
+          email={user?.email}
+          onClose={() => setShowDeleteAccount(false)}
+          onDeleted={() => {
+            setShowDeleteAccount(false)
+            setUser(null)
+            setUsageLimitedBanner(false)
+            pushToast('Your account and data have been deleted.', 'success')
+          }}
+        />
+      )}
+      {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       <PricingModal isOpen={pricingOpen} onClose={() => setPricingOpen(false)} />
     </div>
   )

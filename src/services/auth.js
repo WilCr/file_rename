@@ -171,6 +171,29 @@ export async function resetPasswordWithToken(token, password) {
 }
 
 /**
+ * Permanently deletes the signed-in account and clears the local session.
+ * @param {string} password
+ * @param {string} token
+ */
+export async function deleteAccount(password, token) {
+  const base = import.meta.env.VITE_API_URL || '/api'
+  const res = await fetch(`${base}/account/delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ password }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(formatApiError(data, `Could not delete account (${res.status})`))
+  }
+  setStoredToken(null)
+  return data
+}
+
+/**
  * @param {string} token
  */
 export async function verifySession(token) {
