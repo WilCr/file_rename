@@ -263,6 +263,10 @@ export default function App() {
     setUsageLimitedBanner(false)
     const list = itemsRef.current
     if (list.length === 0) return
+    if (preferredPattern === 'sequential') {
+      pushToast('Sequential Numbers replaces AI names. Pick another pattern to use AI rename.', 'info')
+      return
+    }
     if (!getStoredToken()) {
       setShowLogin(true)
       pushToast('Sign in to use AI rename.', 'info')
