@@ -1,6 +1,9 @@
 import { loadStripe } from '@stripe/stripe-js'
 
-const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+const publishableKey =
+  typeof import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY === 'string'
+    ? import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY.trim()
+    : ''
 
 /**
  * @param {string} priceId
@@ -8,6 +11,11 @@ const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 export async function redirectToCheckout(priceId) {
   if (!publishableKey) {
     throw new Error('Stripe is not configured (missing VITE_STRIPE_PUBLISHABLE_KEY).')
+  }
+  if (!/^pk_(test|live)_/.test(publishableKey)) {
+    throw new Error(
+      'VITE_STRIPE_PUBLISHABLE_KEY is invalid. It must start with pk_test_ or pk_live_ (Stripe Dashboard → Developers → API keys).',
+    )
   }
   const stripe = await loadStripe(publishableKey)
   if (!stripe) {

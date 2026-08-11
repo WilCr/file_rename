@@ -26,6 +26,14 @@ export default async function handler(req, res) {
     (typeof process.env.CLAUDE_API_KEY === 'string' && process.env.CLAUDE_API_KEY.trim()) ||
       (typeof process.env.ANTHROPIC_API_KEY === 'string' && process.env.ANTHROPIC_API_KEY.trim()),
   )
+  const stripeSecret = typeof process.env.STRIPE_SECRET_KEY === 'string' ? process.env.STRIPE_SECRET_KEY.trim() : ''
+  const stripeConfigured = /^sk_(test|live)_/.test(stripeSecret)
+  const stripePricesConfigured = Boolean(
+    typeof process.env.STRIPE_PRICE_PRO === 'string' &&
+      process.env.STRIPE_PRICE_PRO.trim() &&
+      typeof process.env.STRIPE_PRICE_BUSINESS === 'string' &&
+      process.env.STRIPE_PRICE_BUSINESS.trim(),
+  )
 
   return res.status(200).json({
     ok: jwtConfigured && databaseConfigured,
@@ -34,5 +42,7 @@ export default async function handler(req, res) {
     claudeConfigured,
     emailConfigured,
     appUrlConfigured,
+    stripeConfigured,
+    stripePricesConfigured,
   })
 }
