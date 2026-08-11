@@ -1,27 +1,10 @@
-import { loadStripe } from '@stripe/stripe-js'
-
-const publishableKey =
-  typeof import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY === 'string'
-    ? import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY.trim()
-    : ''
-
 /**
+ * Start Stripe Checkout by creating a session on the server, then navigating
+ * to session.url. stripe.redirectToCheckout was removed from Stripe.js.
+ *
  * @param {string} priceId
  */
 export async function redirectToCheckout(priceId) {
-  if (!publishableKey) {
-    throw new Error('Stripe is not configured (missing VITE_STRIPE_PUBLISHABLE_KEY).')
-  }
-  if (!/^pk_(test|live)_/.test(publishableKey)) {
-    throw new Error(
-      'VITE_STRIPE_PUBLISHABLE_KEY is invalid. It must start with pk_test_ or pk_live_ (Stripe Dashboard → Developers → API keys).',
-    )
-  }
-  const stripe = await loadStripe(publishableKey)
-  if (!stripe) {
-    throw new Error('Could not load Stripe.')
-  }
-
   const token = localStorage.getItem('authToken')
   if (!token) {
     throw new Error('Sign in to upgrade.')
@@ -42,15 +25,11 @@ export async function redirectToCheckout(priceId) {
     throw new Error(data.error || 'Could not start checkout')
   }
 
-  const { sessionId } = data
-  if (!sessionId) {
+  if (typeof data.url !== 'string' || !data.url) {
     throw new Error('Invalid checkout response')
   }
 
-  const { error } = await stripe.redirectToCheckout({ sessionId })
-  if (error) {
-    throw new Error(error.message || 'Stripe redirect failed')
-  }
+  window.location.href = data.url
 }
 
 export async function redirectToBillingPortal() {

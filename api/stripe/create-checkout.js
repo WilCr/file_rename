@@ -71,7 +71,11 @@ export default async function handler(req, res) {
         : { customer_email: user.email }),
     })
 
-    return res.status(200).json({ sessionId: session.id })
+    if (!session.url) {
+      return res.status(502).json({ error: 'Stripe did not return a checkout URL.' })
+    }
+
+    return res.status(200).json({ url: session.url, sessionId: session.id })
   } catch (err) {
     console.error('create-checkout:', err)
     const type = err?.type
