@@ -55,15 +55,21 @@ export default async function handler(req, res) {
       })
     }
 
-    const appUrl = process.env.APP_URL || 'http://localhost:5173'
+    // Prefer the site the user is on so Preview/chi deployments return correctly
+    // even when APP_URL still points at an older production domain.
+    const forwardedHost = req.headers['x-forwarded-host'] || req.headers.host
+    const forwardedProto = req.headers['x-forwarded-proto'] || 'https'
+    const originFromRequest =
+      typeof forwardedHost === 'string' ? `${forwardedProto}://${String(forwardedHost).split(',')[0].trim()}` : ''
+    const appUrl = (originFromRequest || process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '')
     const stripe = new Stripe(secret)
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${appUrl.replace(/\/$/, '')}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl.replace(/\/$/, '')}/?checkout=canceled`,
+      success_url: `${appUrl}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/?checkout=canceled`,
       client_reference_id: user.id,
       metadata: { userId: user.id },
       ...(user.stripeCustomerId

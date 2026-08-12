@@ -5,10 +5,12 @@ import { checkUsage } from '../../services/api'
  * @param {string | null} token
  * @param {number} [refreshKey]
  * @param {() => void} [onUpgradeClick]
+ * @param {() => Promise<void> | void} [onRefreshPlan]
  */
-export default function UsageIndicator({ token, refreshKey = 0, onUpgradeClick }) {
+export default function UsageIndicator({ token, refreshKey = 0, onUpgradeClick, onRefreshPlan }) {
   const [usage, setUsage] = useState(null)
   const [error, setError] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -68,6 +70,26 @@ export default function UsageIndicator({ token, refreshKey = 0, onUpgradeClick }
             </button>
           ) : (
             <span>Upgrade to continue.</span>
+          )}
+          {onRefreshPlan && usage.limit <= 10 && (
+            <>
+              {' · '}
+              <button
+                type="button"
+                disabled={refreshing}
+                onClick={async () => {
+                  setRefreshing(true)
+                  try {
+                    await onRefreshPlan()
+                  } finally {
+                    setRefreshing(false)
+                  }
+                }}
+                className="font-medium underline disabled:opacity-50"
+              >
+                {refreshing ? 'Refreshing…' : 'Already paid? Refresh plan'}
+              </button>
+            </>
           )}
         </p>
       )}

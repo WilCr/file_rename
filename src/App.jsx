@@ -17,7 +17,11 @@ import { ToastContainer } from './components/Toast'
 import { useFileProcessor } from './hooks/useFileProcessor'
 import { pushRecentOwner, useLocalStorage } from './hooks/useLocalStorage'
 import { getStoredToken, logout, setStoredToken, verifySession } from './services/auth'
-import { redirectToBillingPortal } from './services/stripe'
+import {
+  confirmCheckoutSession,
+  redirectToBillingPortal,
+  syncSubscription,
+} from './services/stripe'
 import { downloadAllSequential } from './utils/downloadUtils'
 import {
   applyNamingPattern,
@@ -147,15 +151,38 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('checkout') === 'success') {
-      pushToast('Thanks! Your subscription will update in a moment.', 'success')
+      const sessionId = params.get('session_id')
       window.history.replaceState({}, '', window.location.pathname)
-      bumpUsage()
-      const t = getStoredToken()
-      if (t) {
-        verifySession(t)
-          .then((data) => setUser(data.user))
-          .catch(() => {})
+
+      const finish = async () => {
+        try {
+          if (sessionId && getStoredToken()) {
+            const data = await confirmCheckoutSession(sessionId)
+            if (data.user) setUser(data.user)
+            bumpUsage()
+            setUsageLimitedBanner(false)
+            pushToast(
+              data.tier === 'pro' || data.tier === 'business'
+                ? `You're on ${data.tier === 'pro' ? 'Pro' : 'Business'}. AI rename credits have been refreshed.`
+                : 'Thanks! Your subscription is active.',
+              'success',
+            )
+            return
+          }
+          const t = getStoredToken()
+          if (t) {
+            const data = await verifySession(t)
+            setUser(data.user)
+          }
+          bumpUsage()
+          pushToast('Thanks! Your subscription will update in a moment.', 'success')
+        } catch (e) {
+          bumpUsage()
+          pushToast(e?.message || 'Payment received, but the plan has not updated yet. Refresh in a moment.', 'info')
+        }
       }
+
+      finish()
     }
     if (params.get('checkout') === 'canceled') {
       pushToast('Checkout canceled.', 'info')
@@ -177,6 +204,23 @@ export default function App() {
     setUser(null)
     setUsageLimitedBanner(false)
   }, [])
+
+  const handleRefreshPlan = useCallback(async () => {
+    try {
+      const data = await syncSubscription()
+      if (data.user) setUser(data.user)
+      bumpUsage()
+      setUsageLimitedBanner(false)
+      pushToast(
+        data.tier === 'pro' || data.tier === 'business'
+          ? `Plan updated to ${data.tier === 'pro' ? 'Pro' : 'Business'}. Credits refreshed.`
+          : 'Subscription synced.',
+        'success',
+      )
+    } catch (e) {
+      pushToast(e?.message || 'Could not refresh plan from Stripe.', 'error')
+    }
+  }, [bumpUsage, pushToast])
 
   const handleManageBilling = useCallback(async () => {
     try {
@@ -455,6 +499,7 @@ export default function App() {
               token={token}
               refreshKey={usageRefreshKey}
               onUpgradeClick={() => setPricingOpen(true)}
+              onRefreshPlan={handleRefreshPlan}
             />
           )}
 

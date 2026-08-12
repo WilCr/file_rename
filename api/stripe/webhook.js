@@ -1,7 +1,15 @@
 import { buffer } from 'micro'
 import Stripe from 'stripe'
+import { fulfillSubscription } from '../../lib/server/fulfillSubscription.js'
 import { prisma } from '../../lib/server/prisma.js'
 import { tierFromPriceId } from '../../lib/server/stripeTier.js'
+
+// Required so Stripe signature verification sees the raw request body.
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
 
 /**
  * @param {import('http').IncomingMessage} req
@@ -12,8 +20,9 @@ export default async function handler(req, res) {
     return res.status(405).send('Method Not Allowed')
   }
 
-  const secret = process.env.STRIPE_SECRET_KEY
-  const whSecret = process.env.STRIPE_WEBHOOK_SECRET
+  const secret = typeof process.env.STRIPE_SECRET_KEY === 'string' ? process.env.STRIPE_SECRET_KEY.trim() : ''
+  const whSecret =
+    typeof process.env.STRIPE_WEBHOOK_SECRET === 'string' ? process.env.STRIPE_WEBHOOK_SECRET.trim() : ''
   if (!secret || !whSecret) {
     console.error('Stripe webhook: missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET')
     return res.status(500).json({ error: 'Server configuration error' })
@@ -43,28 +52,17 @@ export default async function handler(req, res) {
 
         const customerId = session.customer
         const subscriptionId = session.subscription
-        if (typeof customerId !== 'string') break
+        if (typeof customerId !== 'string' || typeof subscriptionId !== 'string') break
 
-        if (subscriptionId && typeof subscriptionId === 'string') {
-          const sub = await stripe.subscriptions.retrieve(subscriptionId)
-          const priceId = sub.items.data[0]?.price?.id
-          const tier = tierFromPriceId(priceId)
+        const user = await prisma.user.findUnique({ where: { id: userId } })
+        const wasFree = !user || user.subscriptionTier === 'free'
 
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              stripeCustomerId: customerId,
-              stripeSubscriptionId: subscriptionId,
-              subscriptionStatus: sub.status,
-              subscriptionTier: tier,
-            },
-          })
-        } else {
-          await prisma.user.update({
-            where: { id: userId },
-            data: { stripeCustomerId: customerId },
-          })
-        }
+        await fulfillSubscription(prisma, stripe, {
+          userId,
+          customerId,
+          subscriptionId,
+          resetUsage: wasFree,
+        })
         break
       }
 
