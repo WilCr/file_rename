@@ -1,7 +1,9 @@
 import Stripe from 'stripe'
 import { getUserFromRequest } from '../../lib/server/auth.js'
 import { getJsonBody } from '../../lib/server/parseBody.js'
+import { getTrustedAppUrl } from '../../lib/server/appUrl.js'
 import { isAllowedCheckoutPriceId } from '../../lib/server/stripeTier.js'
+import { consumeRateLimit, tooManyRequests } from '../../lib/server/rateLimit.js'
 
 function getStripeSecret() {
   const secret = typeof process.env.STRIPE_SECRET_KEY === 'string' ? process.env.STRIPE_SECRET_KEY.trim() : ''
@@ -46,6 +48,9 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
+    const limited = await consumeRateLimit(`checkout:user:${user.id}`, 10, 60 * 60 * 1000)
+    if (!limited.ok) return tooManyRequests(res, limited.retryAfterSec)
+
     const { priceId } = getJsonBody(req)
     if (!priceId || typeof priceId !== 'string' || !isAllowedCheckoutPriceId(priceId)) {
       return res.status(400).json({
@@ -55,13 +60,7 @@ export default async function handler(req, res) {
       })
     }
 
-    // Prefer the site the user is on so Preview/chi deployments return correctly
-    // even when APP_URL still points at an older production domain.
-    const forwardedHost = req.headers['x-forwarded-host'] || req.headers.host
-    const forwardedProto = req.headers['x-forwarded-proto'] || 'https'
-    const originFromRequest =
-      typeof forwardedHost === 'string' ? `${forwardedProto}://${String(forwardedHost).split(',')[0].trim()}` : ''
-    const appUrl = (originFromRequest || process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '')
+    const appUrl = getTrustedAppUrl()
     const stripe = new Stripe(secret)
 
     const session = await stripe.checkout.sessions.create({

@@ -1,5 +1,5 @@
 import Stripe from 'stripe'
-import { getUserFromRequest } from '../../lib/server/auth.js'
+import { getUserFromRequest, publicUser } from '../../lib/server/auth.js'
 import { getJsonBody } from '../../lib/server/parseBody.js'
 import { fulfillSubscription } from '../../lib/server/fulfillSubscription.js'
 import { getUsageState } from '../../lib/server/usage.js'
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Not a subscription checkout session.' })
     }
 
-    if (session.payment_status !== 'paid' && session.status !== 'complete') {
+    if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
       return res.status(402).json({ error: 'Payment is not complete yet. Try again in a moment.' })
     }
 
@@ -71,14 +71,7 @@ export default async function handler(req, res) {
       ok: true,
       tier: result.tier,
       status: result.status,
-      user: {
-        id: updated.id,
-        email: updated.email,
-        name: updated.name,
-        subscriptionTier: updated.subscriptionTier,
-        subscriptionStatus: updated.subscriptionStatus,
-        billingPortalAvailable: !!updated.stripeCustomerId,
-      },
+      user: publicUser(updated),
       usage: {
         used: usage.used,
         limit: usage.limit,

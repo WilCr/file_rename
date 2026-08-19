@@ -20,6 +20,7 @@ model User {
   stripeSubscriptionId String?
   subscriptionStatus   String?
   subscriptionTier     String  @default("free")
+  tokenVersion         Int     @default(0)
 
   usage               Usage[]
   passwordResetTokens PasswordResetToken[]
@@ -44,4 +45,19 @@ model Usage {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, month])
+}
+
+model EmailUsage {
+  email     String
+  month     String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([email, month])
+}
+
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
 }

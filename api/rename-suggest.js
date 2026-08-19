@@ -1,8 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { getUserFromRequest } from '../lib/server/auth.js'
 import { getJsonBody } from '../lib/server/parseBody.js'
-import { getUsageState, incrementUsage } from '../lib/server/usage.js'
+import { consumeUsage, refundUsage } from '../lib/server/usage.js'
 import { prisma } from '../lib/server/prisma.js'
+import { consumeRateLimit, getClientIp, tooManyRequests } from '../lib/server/rateLimit.js'
 
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929'
 const MODEL =
@@ -10,6 +11,9 @@ const MODEL =
     ? process.env.CLAUDE_MODEL.trim()
     : DEFAULT_MODEL
 const IMAGE_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+const MAX_FILENAME_CHARS = 240
+const MAX_TEXT_CHARS = 20_000
+const MAX_BASE64_CHARS = 4 * 1024 * 1024
 
 export const config = { maxDuration: 60 }
 
@@ -83,28 +87,43 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    const usage = await getUsageState(prisma, user.id, user)
-    if (usage.exceeded) {
+    const ip = getClientIp(req)
+    const [userLimit, ipLimit] = await Promise.all([
+      consumeRateLimit(`rename:user:${user.id}`, 20, 60 * 1000),
+      consumeRateLimit(`rename:ip:${ip}`, 40, 60 * 1000),
+    ])
+    if (!userLimit.ok) return tooManyRequests(res, userLimit.retryAfterSec)
+    if (!ipLimit.ok) return tooManyRequests(res, ipLimit.retryAfterSec)
+
+    const consumed = await consumeUsage(prisma, user)
+    if (!consumed.ok) {
       return res.status(403).json({
         error: 'Usage limit exceeded',
         code: 'USAGE_LIMIT_EXCEEDED',
-        limit: usage.limit,
-        used: usage.used,
+        limit: consumed.limit,
+        used: consumed.used,
       })
     }
 
     const { filename, fileType, fileSize, content } = getJsonBody(req)
     if (!filename || typeof filename !== 'string') {
+      await refundUsage(prisma, user, consumed.month)
       return res.status(400).json({ error: 'filename is required' })
     }
 
-    const typeLabel = typeof fileType === 'string' ? fileType : 'unknown'
-    const sizeLabel = typeof fileSize === 'string' ? fileSize : String(fileSize ?? 'unknown')
+    const safeName = filename.slice(0, MAX_FILENAME_CHARS)
+    const typeLabel = typeof fileType === 'string' ? fileType.slice(0, 80) : 'unknown'
+    const sizeLabel = typeof fileSize === 'string' ? fileSize.slice(0, 40) : String(fileSize ?? 'unknown').slice(0, 40)
 
     /** @type {Array<Record<string, unknown>>} */
     const blocks = []
     const kind = content && typeof content === 'object' ? content.kind : null
     const data = content && typeof content.data === 'string' ? content.data : ''
+
+    if (data && data.length > MAX_BASE64_CHARS) {
+      await refundUsage(prisma, user, consumed.month)
+      return res.status(413).json({ error: 'Document is too large to analyse.' })
+    }
 
     if (kind === 'pdf' && data) {
       blocks.push({
@@ -115,36 +134,40 @@ export default async function handler(req, res) {
       const mediaType = IMAGE_MEDIA_TYPES.has(content.mediaType) ? content.mediaType : 'image/png'
       blocks.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data } })
     } else if (kind === 'text' && data) {
-      blocks.push({ type: 'text', text: `Document contents:\n\n${data.slice(0, 20_000)}` })
+      blocks.push({ type: 'text', text: `Document contents:\n\n${data.slice(0, MAX_TEXT_CHARS)}` })
     }
 
     const analysedContent = blocks.length > 0
-    blocks.push({ type: 'text', text: buildInstructions(filename, typeLabel, sizeLabel, analysedContent) })
+    blocks.push({ type: 'text', text: buildInstructions(safeName, typeLabel, sizeLabel, analysedContent) })
 
     const anthropic = new Anthropic({ apiKey })
-    const message = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 300,
-      messages: [{ role: 'user', content: blocks }],
-    })
+    let message
+    try {
+      message = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 300,
+        messages: [{ role: 'user', content: blocks }],
+      })
+    } catch (err) {
+      await refundUsage(prisma, user, consumed.month)
+      throw err
+    }
 
     const block = message.content?.find((c) => c.type === 'text')
     const text = block?.type === 'text' ? block.text?.trim() : ''
     if (!text) {
+      await refundUsage(prisma, user, consumed.month)
       return res.status(502).json({ error: 'Empty response from AI' })
     }
 
     const suggestion = text.split('\n').pop().replace(/^["'`]|["'`]$/g, '').trim()
 
-    await incrementUsage(prisma, user.id, usage.month)
-
-    const nextUsed = usage.used + 1
     return res.status(200).json({
       suggestion,
       analysedContent,
-      remainingCredits: Math.max(0, usage.limit - nextUsed),
-      used: nextUsed,
-      limit: usage.limit,
+      remainingCredits: Math.max(0, consumed.limit - consumed.used),
+      used: consumed.used,
+      limit: consumed.limit,
     })
   } catch (err) {
     console.error('rename-suggest:', err)

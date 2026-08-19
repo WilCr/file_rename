@@ -2,6 +2,7 @@ import Stripe from 'stripe'
 import { getUserFromRequest, verifyPassword } from '../../lib/server/auth.js'
 import { getJsonBody } from '../../lib/server/parseBody.js'
 import { prisma } from '../../lib/server/prisma.js'
+import { consumeRateLimit, tooManyRequests } from '../../lib/server/rateLimit.js'
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -17,6 +18,9 @@ export default async function handler(req, res) {
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
+
+    const limited = await consumeRateLimit(`delete:user:${user.id}`, 5, 60 * 60 * 1000)
+    if (!limited.ok) return tooManyRequests(res, limited.retryAfterSec)
 
     const { password } = getJsonBody(req)
     if (typeof password !== 'string' || !password) {

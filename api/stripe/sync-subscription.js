@@ -1,12 +1,13 @@
 import Stripe from 'stripe'
-import { getUserFromRequest } from '../../lib/server/auth.js'
+import { getUserFromRequest, publicUser } from '../../lib/server/auth.js'
 import { fulfillSubscription } from '../../lib/server/fulfillSubscription.js'
 import { getUsageState } from '../../lib/server/usage.js'
 import { prisma } from '../../lib/server/prisma.js'
+import { consumeRateLimit, tooManyRequests } from '../../lib/server/rateLimit.js'
 
 /**
- * Pull the latest Stripe subscription for the signed-in user.
- * Recovers accounts when Checkout succeeded but the webhook never updated the DB.
+ * Recover a subscription that was created for THIS user (client_reference_id / metadata).
+ * Email match alone is not enough — that would let someone squat a paid customer's address.
  */
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -28,39 +29,39 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
+    const limited = await consumeRateLimit(`sync:user:${user.id}`, 10, 60 * 60 * 1000)
+    if (!limited.ok) return tooManyRequests(res, limited.retryAfterSec)
+
     const stripe = new Stripe(secret)
     let customerId = user.stripeCustomerId
+    let subscriptionId = user.stripeSubscriptionId
 
     if (!customerId) {
       const customers = await stripe.customers.list({ email: user.email, limit: 5 })
-      const withSub = []
-      for (const c of customers.data) {
-        const subs = await stripe.subscriptions.list({
-          customer: c.id,
-          status: 'all',
-          limit: 5,
-        })
-        const active = subs.data.find((s) => s.status === 'active' || s.status === 'trialing')
-        if (active) {
-          withSub.push({ customerId: c.id, subscriptionId: active.id })
+      for (const customer of customers.data) {
+        const sessions = await stripe.checkout.sessions.list({ customer: customer.id, limit: 15 })
+        const mine = sessions.data.find(
+          (s) =>
+            (s.client_reference_id === user.id || s.metadata?.userId === user.id) &&
+            (s.payment_status === 'paid' || s.payment_status === 'no_payment_required') &&
+            typeof s.subscription === 'string',
+        )
+        if (mine && typeof mine.customer === 'string' && typeof mine.subscription === 'string') {
+          customerId = mine.customer
+          subscriptionId = mine.subscription
           break
         }
       }
-      if (!withSub.length) {
-        return res.status(404).json({
-          error: 'No active Stripe subscription found for this account.',
-          code: 'NO_SUBSCRIPTION',
-        })
-      }
-      customerId = withSub[0].customerId
-      const wasFree = user.subscriptionTier === 'free'
-      await fulfillSubscription(prisma, stripe, {
-        userId: user.id,
-        customerId,
-        subscriptionId: withSub[0].subscriptionId,
-        resetUsage: wasFree,
+    }
+
+    if (!customerId) {
+      return res.status(404).json({
+        error: 'No active Stripe subscription found for this account.',
+        code: 'NO_SUBSCRIPTION',
       })
-    } else {
+    }
+
+    if (!subscriptionId) {
       const subs = await stripe.subscriptions.list({
         customer: customerId,
         status: 'all',
@@ -73,14 +74,16 @@ export default async function handler(req, res) {
           code: 'NO_SUBSCRIPTION',
         })
       }
-      const wasFree = user.subscriptionTier === 'free'
-      await fulfillSubscription(prisma, stripe, {
-        userId: user.id,
-        customerId,
-        subscriptionId: active.id,
-        resetUsage: wasFree,
-      })
+      subscriptionId = active.id
     }
+
+    const wasFree = user.subscriptionTier === 'free'
+    await fulfillSubscription(prisma, stripe, {
+      userId: user.id,
+      customerId,
+      subscriptionId,
+      resetUsage: wasFree,
+    })
 
     const updated = await prisma.user.findUnique({ where: { id: user.id } })
     const usage = await getUsageState(prisma, user.id, updated)
@@ -89,14 +92,7 @@ export default async function handler(req, res) {
       ok: true,
       tier: updated.subscriptionTier,
       status: updated.subscriptionStatus,
-      user: {
-        id: updated.id,
-        email: updated.email,
-        name: updated.name,
-        subscriptionTier: updated.subscriptionTier,
-        subscriptionStatus: updated.subscriptionStatus,
-        billingPortalAvailable: !!updated.stripeCustomerId,
-      },
+      user: publicUser(updated),
       usage: {
         used: usage.used,
         limit: usage.limit,

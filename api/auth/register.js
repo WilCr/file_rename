@@ -1,6 +1,7 @@
-import { hashPassword, signToken } from '../../lib/server/auth.js'
+import { hashPassword, signToken, publicUser } from '../../lib/server/auth.js'
 import { getJsonBody, mapAuthDbError } from '../../lib/server/parseBody.js'
 import { prisma } from '../../lib/server/prisma.js'
+import { consumeRateLimit, getClientIp, tooManyRequests } from '../../lib/server/rateLimit.js'
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -12,13 +13,17 @@ export default async function handler(req, res) {
   }
 
   try {
+    const ip = getClientIp(req)
+    const ipLimit = await consumeRateLimit(`register:ip:${ip}`, 5, 60 * 60 * 1000)
+    if (!ipLimit.ok) return tooManyRequests(res, ipLimit.retryAfterSec)
+
     const body = getJsonBody(req)
     const { email, password, name } = body
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ error: 'Valid email is required' })
     }
-    if (!password || typeof password !== 'string' || password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' })
+    if (!password || typeof password !== 'string' || password.length < 8 || password.length > 128) {
+      return res.status(400).json({ error: 'Password must be 8–128 characters' })
     }
 
     const existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } })
@@ -31,34 +36,21 @@ export default async function handler(req, res) {
       data: {
         email: email.trim().toLowerCase(),
         passwordHash,
-        name: typeof name === 'string' ? name.trim() || null : null,
+        name: typeof name === 'string' ? name.trim().slice(0, 80) || null : null,
       },
     })
 
-    const token = signToken({ id: user.id, email: user.email })
+    const token = signToken(user)
 
     return res.status(201).json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        subscriptionTier: user.subscriptionTier,
-        billingPortalAvailable: !!user.stripeCustomerId,
-      },
+      user: publicUser(user),
     })
   } catch (err) {
     console.error('register:', err)
     const mapped = mapAuthDbError(err)
-    const msg = typeof err?.message === 'string' ? err.message : ''
-    // Always surface config/auth misconfiguration — otherwise users only see "Registration failed"
-    const detail =
-      mapped ||
-      (msg.includes('JWT_SECRET') ? 'JWT_SECRET is not set on the server' : null) ||
-      (process.env.NODE_ENV !== 'production' && err instanceof Error ? err.message.slice(0, 200) : null)
     return res.status(500).json({
       error: mapped || 'Registration failed',
-      ...(detail ? { detail } : {}),
     })
   }
 }

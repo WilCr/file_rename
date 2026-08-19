@@ -1,4 +1,4 @@
-import { getUserFromRequest } from '../../lib/server/auth.js'
+import { getUserFromRequest, publicUser } from '../../lib/server/auth.js'
 import { getUsageState } from '../../lib/server/usage.js'
 import { prisma } from '../../lib/server/prisma.js'
 
@@ -24,14 +24,7 @@ export default async function handler(req, res) {
     const usage = await getUsageState(prisma, user.id, user)
 
     return res.status(200).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        subscriptionTier: user.subscriptionTier,
-        subscriptionStatus: user.subscriptionStatus,
-        billingPortalAvailable: !!user.stripeCustomerId,
-      },
+      user: publicUser(user),
       usage: {
         used: usage.used,
         limit: usage.limit,

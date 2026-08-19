@@ -1,10 +1,7 @@
 import Stripe from 'stripe'
 import { getUserFromRequest } from '../../lib/server/auth.js'
+import { getTrustedAppUrl } from '../../lib/server/appUrl.js'
 
-/**
- * @param {import('http').IncomingMessage} req
- * @param {import('http').ServerResponse} res
- */
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'POST, OPTIONS')
@@ -28,12 +25,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No billing account yet. Subscribe to a plan first.' })
     }
 
-    const appUrl = process.env.APP_URL || 'http://localhost:5173'
     const stripe = new Stripe(secret)
-
     const session = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
-      return_url: `${appUrl.replace(/\/$/, '')}/`,
+      return_url: `${getTrustedAppUrl()}/`,
     })
 
     return res.status(200).json({ url: session.url })
