@@ -11,6 +11,7 @@ import { Header } from './components/Header'
 import Hero from './components/Hero'
 import PricingModal from './components/Paywall/PricingModal'
 import PrivacyModal from './components/PrivacyModal'
+import TermsModal from './components/TermsModal'
 import UpgradePrompt from './components/Paywall/UpgradePrompt'
 import UsageIndicator from './components/Paywall/UsageIndicator'
 import { ToastContainer } from './components/Toast'
@@ -78,6 +79,7 @@ export default function App() {
   const [resetToken, setResetToken] = useState(null)
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [usageLimitedBanner, setUsageLimitedBanner] = useState(false)
   const [usageRefreshKey, setUsageRefreshKey] = useState(0)
@@ -539,13 +541,22 @@ export default function App() {
             Files stay in your browser, except when AI suggest sends them for analysis.
             Ctrl+Enter to download all.
           </p>
-          <button
-            type="button"
-            onClick={() => setShowPrivacy(true)}
-            className="text-violet-600 underline hover:text-violet-500"
-          >
-            Privacy note
-          </button>
+          <p className="space-x-3">
+            <button
+              type="button"
+              onClick={() => setShowPrivacy(true)}
+              className="text-violet-600 underline hover:text-violet-500"
+            >
+              Privacy note
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTerms(true)}
+              className="text-violet-600 underline hover:text-violet-500"
+            >
+              Terms of Service
+            </button>
+          </p>
         </footer>
       </div>
 
@@ -573,6 +584,7 @@ export default function App() {
             setShowRegister(false)
             setShowLogin(true)
           }}
+          onOpenTerms={() => setShowTerms(true)}
         />
       )}
       {showForgot && (
@@ -611,6 +623,7 @@ export default function App() {
         />
       )}
       {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       <PricingModal isOpen={pricingOpen} onClose={() => setPricingOpen(false)} />
     </div>
   )

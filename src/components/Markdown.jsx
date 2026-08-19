@@ -3,8 +3,8 @@ import { useMemo } from 'react'
 const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|_[^_]+_)/g
 
 /**
- * Renders the small Markdown subset used by PRIVACY.md: headings, paragraphs,
- * bullet lists, bold, inline code, italics, and links.
+ * Renders the small Markdown subset used by PRIVACY.md and TERMS.md: headings,
+ * paragraphs, bullet lists, bold, inline code, italics, and links.
  * @param {string} text
  * @param {string} keyPrefix
  */

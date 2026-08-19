@@ -6,9 +6,10 @@ import { register } from '../../services/auth'
  *   onClose: () => void,
  *   onSuccess: (data: { user: object }) => void,
  *   onSwitchToLogin: () => void,
+ *   onOpenTerms?: () => void,
  * }} props
  */
-export default function Register({ onClose, onSuccess, onSwitchToLogin }) {
+export default function Register({ onClose, onSuccess, onSwitchToLogin, onOpenTerms }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -117,6 +118,17 @@ export default function Register({ onClose, onSuccess, onSwitchToLogin }) {
           <button type="button" onClick={onSwitchToLogin} className="text-violet-600 hover:underline">
             Sign in
           </button>
+        </p>
+        <p className="mt-3 text-xs text-slate-500">
+          By creating an account you agree to the{' '}
+          {onOpenTerms ? (
+            <button type="button" onClick={onOpenTerms} className="text-violet-600 underline hover:text-violet-500">
+              Terms of Service
+            </button>
+          ) : (
+            'Terms of Service'
+          )}
+          .
         </p>
       </div>
     </div>
