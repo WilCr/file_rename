@@ -35,9 +35,9 @@ export default function PricingModal({ isOpen, onClose }) {
     {
       name: 'Business',
       price: '$29.99',
-      credits: 'Highest AI quota',
+      credits: '5,000 renames / month',
       features: [
-        'Effectively unlimited AI-powered renames per month',
+        '5,000 AI-powered renames per month',
         'Same renaming tools as Pro (patterns, owner labels, batch AI)',
         'Reads PDFs, images, and Word documents for naming',
       ],

@@ -52,7 +52,7 @@ export default function UsageIndicator({ token, refreshKey = 0, onUpgradeClick, 
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-slate-700">AI renames this month</span>
         <span className={`text-sm font-bold ${isNearLimit ? 'text-red-600' : 'text-slate-900'}`}>
-          {usage.used} / {usage.limit === 999999 ? '∞' : usage.limit}
+          {usage.used.toLocaleString()} / {usage.limit.toLocaleString()}
         </span>
       </div>
       <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
