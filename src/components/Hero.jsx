@@ -5,7 +5,7 @@ export default function Hero() {
         Rename files with AI
       </h1>
       <p className="mx-auto mt-4 max-w-xl text-base text-slate-600 sm:text-lg">
-        Drop files, get smart names from Claude, download in one click.
+        Drop PDFs, Word docs, and images. Get names from Claude. Download in one click.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
         <span className="inline-flex rounded-full bg-violet-100 px-4 py-1.5 text-sm font-medium text-violet-800">

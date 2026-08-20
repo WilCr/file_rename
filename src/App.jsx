@@ -10,13 +10,14 @@ import { FileList } from './components/FileList'
 import { Header } from './components/Header'
 import Hero from './components/Hero'
 import PricingModal from './components/Paywall/PricingModal'
-import PrivacyModal from './components/PrivacyModal'
-import TermsModal from './components/TermsModal'
+import Seo from './components/Seo'
+import SiteFooter from './components/SiteFooter'
 import UpgradePrompt from './components/Paywall/UpgradePrompt'
 import UsageIndicator from './components/Paywall/UsageIndicator'
 import { ToastContainer } from './components/Toast'
 import { useFileProcessor } from './hooks/useFileProcessor'
 import { pushRecentOwner, useLocalStorage } from './hooks/useLocalStorage'
+import { DEFAULT_DESCRIPTION } from './lib/site'
 import { getStoredToken, logout, setStoredToken, verifySession } from './services/auth'
 import {
   confirmCheckoutSession,
@@ -78,8 +79,6 @@ export default function App() {
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [resetToken, setResetToken] = useState(null)
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
-  const [showPrivacy, setShowPrivacy] = useState(false)
-  const [showTerms, setShowTerms] = useState(false)
   const [pricingOpen, setPricingOpen] = useState(false)
   const [usageLimitedBanner, setUsageLimitedBanner] = useState(false)
   const [usageRefreshKey, setUsageRefreshKey] = useState(0)
@@ -142,11 +141,22 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    let strip = false
     const reset = params.get('reset')
     if (reset) {
       setResetToken(reset)
       setShowResetPassword(true)
-      window.history.replaceState({}, '', window.location.pathname)
+      params.delete('reset')
+      strip = true
+    }
+    if (params.get('signin') === '1') {
+      setShowLogin(true)
+      params.delete('signin')
+      strip = true
+    }
+    if (strip) {
+      const qs = params.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
     }
   }, [])
 
@@ -408,6 +418,11 @@ export default function App() {
 
   return (
     <div className="min-h-svh bg-[#f3f4f6] font-sans text-slate-900">
+      <Seo
+        title="AI File Renamer | Rename PDFs and Word docs in your browser"
+        description={DEFAULT_DESCRIPTION}
+        path="/"
+      />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow"
@@ -536,28 +551,7 @@ export default function App() {
           />
         </main>
 
-        <footer className="mt-10 space-y-1 text-center text-xs text-slate-500">
-          <p>
-            Files stay in your browser, except when AI suggest sends them for analysis.
-            Ctrl+Enter to download all.
-          </p>
-          <p className="space-x-3">
-            <button
-              type="button"
-              onClick={() => setShowPrivacy(true)}
-              className="text-violet-600 underline hover:text-violet-500"
-            >
-              Privacy note
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTerms(true)}
-              className="text-violet-600 underline hover:text-violet-500"
-            >
-              Terms of Service
-            </button>
-          </p>
-        </footer>
+        <SiteFooter showAppHints />
       </div>
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
@@ -584,7 +578,6 @@ export default function App() {
             setShowRegister(false)
             setShowLogin(true)
           }}
-          onOpenTerms={() => setShowTerms(true)}
         />
       )}
       {showForgot && (
@@ -622,8 +615,6 @@ export default function App() {
           }}
         />
       )}
-      {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
-      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       <PricingModal isOpen={pricingOpen} onClose={() => setPricingOpen(false)} />
     </div>
   )

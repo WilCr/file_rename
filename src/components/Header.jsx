@@ -1,4 +1,5 @@
 import { ChevronUp, ExternalLink, LogIn, LogOut, UserPlus } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const CURVEDSPACE_URL = 'https://curvedspace.us/'
 
@@ -18,7 +19,7 @@ const pill =
 export function Header({ user, onSignIn, onSignUp, onSignOut, onManageBilling, onOpenPricing }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 py-2 sm:py-4">
-      <div className="flex min-w-0 items-center gap-3">
+      <Link to="/" className="flex min-w-0 items-center gap-3">
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white shadow-sm"
           aria-hidden
@@ -26,7 +27,7 @@ export function Header({ user, onSignIn, onSignUp, onSignOut, onManageBilling, o
           <ChevronUp className="h-5 w-5 stroke-[2.5]" />
         </div>
         <span className="font-display text-lg font-bold tracking-tight text-slate-900 sm:text-xl">AI File Renamer</span>
-      </div>
+      </Link>
 
       <nav className="flex flex-wrap items-center justify-end gap-2">
         <a href={CURVEDSPACE_URL} target="_blank" rel="noopener noreferrer" className={pill}>
@@ -64,6 +65,9 @@ export function Header({ user, onSignIn, onSignUp, onSignOut, onManageBilling, o
           </>
         ) : (
           <>
+            <Link to="/pricing" className={pill}>
+              Pricing
+            </Link>
             <button type="button" onClick={onSignIn} className={`${pill} gap-1.5`}>
               <LogIn className="h-4 w-4" aria-hidden />
               Sign in

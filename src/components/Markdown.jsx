@@ -118,16 +118,16 @@ export default function Markdown({ source }) {
       {blocks.map((block, i) => {
         if (block.type === 'h1') {
           return (
-            <h2 key={i} className="font-display text-xl font-semibold text-slate-900">
+            <h1 key={i} className="font-display text-xl font-semibold text-slate-900">
               {block.text}
-            </h2>
+            </h1>
           )
         }
         if (block.type === 'h2') {
           return (
-            <h3 key={i} className="pt-2 font-display text-base font-semibold text-slate-900">
+            <h2 key={i} className="pt-2 font-display text-base font-semibold text-slate-900">
               {block.text}
-            </h3>
+            </h2>
           )
         }
         if (block.type === 'ul') {
