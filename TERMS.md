@@ -1,9 +1,9 @@
 # Terms of Service
 
-_Last updated: 20 August 2026_
+_Last updated: 21 August 2026_
 
 These terms apply when you use AI File Renamer at
-[https://file-rename-chi.vercel.app](https://file-rename-chi.vercel.app). Creating
+[https://scanrename.com](https://scanrename.com). Creating
 an account, signing in, or paying for a plan means you agree to them.
 
 This is a small tool, not a law firm. The words below describe how the product

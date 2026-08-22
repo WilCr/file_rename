@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://file-rename-chi.vercel.app/sitemap.xml
+Sitemap: https://scanrename.com/sitemap.xml

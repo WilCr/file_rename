@@ -23,7 +23,7 @@ Intelligent file renaming powered by Claude AI
 
 - Deploy to Vercel with one click
 - Set environment variable in Vercel dashboard
-- Domain: file-renamer.vercel.app (or custom)
+- Domain: https://scanrename.com
 
 ## Usage
 

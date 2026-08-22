@@ -1,6 +1,6 @@
 /** Canonical origin used in sitemap, robots, and meta tags. */
 export const SITE_ORIGIN = (
-  import.meta.env.VITE_APP_URL || 'https://file-rename-chi.vercel.app'
+  import.meta.env.VITE_APP_URL || 'https://scanrename.com'
 ).replace(/\/$/, '')
 
 export const SITE_NAME = 'AI File Renamer'
