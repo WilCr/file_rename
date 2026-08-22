@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { SITE_ORIGIN } from '../lib/site'
+import { SITE_NAME, SITE_ORIGIN } from '../lib/site'
 
 /**
  * @param {string} attr
@@ -50,7 +50,7 @@ export default function Seo({ title, description, path, noindex = false }) {
     upsertMeta('property', 'og:description', description)
     upsertMeta('property', 'og:url', noindex ? SITE_ORIGIN + '/' : url)
     upsertMeta('property', 'og:type', 'website')
-    upsertMeta('property', 'og:site_name', 'AI File Renamer')
+    upsertMeta('property', 'og:site_name', SITE_NAME)
     upsertMeta('name', 'twitter:card', 'summary')
     upsertMeta('name', 'twitter:title', title)
     upsertMeta('name', 'twitter:description', description)

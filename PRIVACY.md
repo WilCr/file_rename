@@ -1,6 +1,9 @@
 # Privacy Note
 
-_Last updated: 3 August 2026_
+_Last updated: 21 August 2026_
+
+This note applies to ScanRename at
+[https://scanrename.com](https://scanrename.com).
 
 ## Your files
 

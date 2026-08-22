@@ -6,8 +6,8 @@ export default function NotFoundPage() {
   return (
     <SiteChrome>
       <Seo
-        title="Page not found | AI File Renamer"
-        description="That page does not exist. Return to AI File Renamer to rename files in your browser."
+        title="Page not found | ScanRename"
+        description="That page does not exist. Return to ScanRename to rename files in your browser."
         path="/"
         noindex
       />

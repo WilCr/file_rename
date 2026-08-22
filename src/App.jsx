@@ -17,7 +17,7 @@ import UsageIndicator from './components/Paywall/UsageIndicator'
 import { ToastContainer } from './components/Toast'
 import { useFileProcessor } from './hooks/useFileProcessor'
 import { pushRecentOwner, useLocalStorage } from './hooks/useLocalStorage'
-import { DEFAULT_DESCRIPTION } from './lib/site'
+import { DEFAULT_DESCRIPTION, HOME_TITLE } from './lib/site'
 import { getStoredToken, logout, setStoredToken, verifySession } from './services/auth'
 import {
   confirmCheckoutSession,
@@ -419,7 +419,7 @@ export default function App() {
   return (
     <div className="min-h-svh bg-[#f3f4f6] font-sans text-slate-900">
       <Seo
-        title="AI File Renamer | Rename PDFs and Word docs in your browser"
+        title={HOME_TITLE}
         description={DEFAULT_DESCRIPTION}
         path="/"
       />

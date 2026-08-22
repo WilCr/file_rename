@@ -26,8 +26,8 @@ export default function AppRoutes() {
           element={
             <LegalPage
               source={privacySource}
-              title="Privacy note | AI File Renamer"
-              description="How AI File Renamer handles your files, account data, and processors. Pattern renaming stays in your browser. AI suggest sends document content to Anthropic."
+              title="Privacy note | ScanRename"
+              description="How ScanRename handles your files, account data, and processors. Pattern renaming stays in your browser. AI suggest sends document content to Anthropic."
               path="/privacy"
             />
           }
@@ -37,8 +37,8 @@ export default function AppRoutes() {
           element={
             <LegalPage
               source={termsSource}
-              title="Terms of Service | AI File Renamer"
-              description="Terms of Service for AI File Renamer: eligibility, acceptable use, Free, Pro, and Business plans, payment, and California governing law."
+              title="Terms of Service | ScanRename"
+              description="Terms of Service for ScanRename: eligibility, acceptable use, Free, Pro, and Business plans, payment, and California governing law."
               path="/terms"
             />
           }

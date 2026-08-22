@@ -1,6 +1,6 @@
-# AI File Renamer
+# ScanRename
 
-Intelligent file renaming powered by Claude AI
+AI file renamer for PDFs and scans, powered by Claude
 
 ## Features
 

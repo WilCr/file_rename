@@ -1,7 +1,10 @@
 export default function Hero() {
   return (
     <section className="mx-auto max-w-2xl px-4 pb-2 pt-4 text-center sm:pt-8">
-      <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
+      <p className="font-display text-sm font-semibold uppercase tracking-wide text-violet-700">
+        ScanRename
+      </p>
+      <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
         Rename files with AI
       </h1>
       <p className="mx-auto mt-4 max-w-xl text-base text-slate-600 sm:text-lg">

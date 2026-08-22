@@ -24,7 +24,7 @@ export default function SiteChrome({ children, wide = false }) {
               <ChevronUp className="h-5 w-5 stroke-[2.5]" />
             </div>
             <span className="font-display text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
-              AI File Renamer
+              ScanRename
             </span>
           </Link>
           <nav className="flex flex-wrap items-center justify-end gap-2" aria-label="Page">

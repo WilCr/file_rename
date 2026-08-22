@@ -2,7 +2,7 @@
 
 _Last updated: 21 August 2026_
 
-These terms apply when you use AI File Renamer at
+These terms apply when you use ScanRename (an AI file renamer) at
 [https://scanrename.com](https://scanrename.com). Creating
 an account, signing in, or paying for a plan means you agree to them.
 
@@ -11,13 +11,13 @@ actually works. They are not a substitute for advice from your own lawyer.
 
 ## Eligibility
 
-You must be at least 18 years old to use AI File Renamer. By creating an
+You must be at least 18 years old to use ScanRename. By creating an
 account, you confirm that you are 18 or older and have the legal capacity to
 agree to these terms.
 
 ## The service
 
-AI File Renamer helps you rename files in your browser. You can apply naming
+ScanRename helps you rename files in your browser. You can apply naming
 patterns and owner labels, then download copies under the new names.
 
 **AI suggest names** is optional. If you use it, we send the filename and file
@@ -94,7 +94,7 @@ subscribers. Price changes do not apply to the current billing period.
 
 ## Intellectual property
 
-AI File Renamer, its design, code, and branding are owned by Curvedspace
+ScanRename, its design, code, and branding are owned by Curvedspace
 Investor Services LLC. These terms do not transfer any ownership to you.
 
 You retain full ownership of your files. We claim no rights to any file you
@@ -149,7 +149,7 @@ assets. You may not assign your account or these terms to anyone else.
 ## Entire agreement
 
 These terms, together with the Privacy Note, are the entire agreement between
-you and Curvedspace Investor Services LLC regarding AI File Renamer. They
+you and Curvedspace Investor Services LLC regarding ScanRename. They
 replace any prior agreements on this subject.
 
 ## Contact

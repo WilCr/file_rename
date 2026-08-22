@@ -26,7 +26,7 @@ export function Header({ user, onSignIn, onSignUp, onSignOut, onManageBilling, o
         >
           <ChevronUp className="h-5 w-5 stroke-[2.5]" />
         </div>
-        <span className="font-display text-lg font-bold tracking-tight text-slate-900 sm:text-xl">AI File Renamer</span>
+        <span className="font-display text-lg font-bold tracking-tight text-slate-900 sm:text-xl">ScanRename</span>
       </Link>
 
       <nav className="flex flex-wrap items-center justify-end gap-2">
