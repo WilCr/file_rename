@@ -1,6 +1,8 @@
 import { ChevronUp, ExternalLink, LogIn, LogOut, UserPlus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { BILLING_PORTAL_URL } from '../lib/site'
+
 const CURVEDSPACE_URL = 'https://curvedspace.us/'
 
 const pill =
@@ -12,11 +14,10 @@ const pill =
  *   onSignIn: () => void,
  *   onSignUp: () => void,
  *   onSignOut: () => void,
- *   onManageBilling: () => void,
  *   onOpenPricing: () => void,
  * }} props
  */
-export function Header({ user, onSignIn, onSignUp, onSignOut, onManageBilling, onOpenPricing }) {
+export function Header({ user, onSignIn, onSignUp, onSignOut, onOpenPricing }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 py-2 sm:py-4">
       <Link to="/" className="flex min-w-0 items-center gap-3">
@@ -36,6 +37,12 @@ export function Header({ user, onSignIn, onSignUp, onSignOut, onManageBilling, o
             <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
           </span>
         </a>
+        <a href={BILLING_PORTAL_URL} target="_blank" rel="noopener noreferrer" className={pill}>
+          <span className="flex items-center gap-1.5">
+            Billing
+            <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
+          </span>
+        </a>
 
         {user ? (
           <>
@@ -48,11 +55,6 @@ export function Header({ user, onSignIn, onSignUp, onSignOut, onManageBilling, o
             <button type="button" onClick={onOpenPricing} className={pill}>
               Plans
             </button>
-            {user.billingPortalAvailable && (
-              <button type="button" onClick={onManageBilling} className={pill}>
-                Billing
-              </button>
-            )}
             <button
               type="button"
               onClick={onSignOut}

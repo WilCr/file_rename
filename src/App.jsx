@@ -21,7 +21,6 @@ import { DEFAULT_DESCRIPTION, HOME_TITLE } from './lib/site'
 import { getStoredToken, logout, setStoredToken, verifySession } from './services/auth'
 import {
   confirmCheckoutSession,
-  redirectToBillingPortal,
   syncSubscription,
 } from './services/stripe'
 import { downloadAllSequential } from './utils/downloadUtils'
@@ -234,14 +233,6 @@ export default function App() {
     }
   }, [bumpUsage, pushToast])
 
-  const handleManageBilling = useCallback(async () => {
-    try {
-      await redirectToBillingPortal()
-    } catch (e) {
-      pushToast(e?.message || 'Could not open billing portal.', 'error')
-    }
-  }, [pushToast])
-
   const addFiles = useCallback(
     (fileList) => {
       const arr = Array.from(fileList)
@@ -442,7 +433,6 @@ export default function App() {
             setShowRegister(true)
           }}
           onSignOut={handleSignOut}
-          onManageBilling={handleManageBilling}
           onOpenPricing={() => setPricingOpen(true)}
         />
 

@@ -9,5 +9,7 @@ export const SITE_DESCRIPTOR = 'AI file renamer for PDFs and scans'
 
 export const HOME_TITLE = `${SITE_NAME} | ${SITE_DESCRIPTOR}`
 
+export const BILLING_PORTAL_URL = 'https://billing.stripe.com/p/login/00weVd0kY62CfES4SR24000'
+
 export const DEFAULT_DESCRIPTION =
   'ScanRename is an AI file renamer for PDFs, Word documents, and images. Pattern renaming stays on your device. Optional AI suggest proposes names from the file contents.'

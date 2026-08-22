@@ -1,5 +1,6 @@
-import { ChevronUp } from 'lucide-react'
+import { ChevronUp, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { BILLING_PORTAL_URL } from '../lib/site'
 import SiteFooter from './SiteFooter'
 
 const navLink =
@@ -34,6 +35,12 @@ export default function SiteChrome({ children, wide = false }) {
             <Link to="/pricing" className={navLink}>
               Pricing
             </Link>
+            <a href={BILLING_PORTAL_URL} target="_blank" rel="noopener noreferrer" className={navLink}>
+              <span className="flex items-center gap-1.5">
+                Billing
+                <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
+              </span>
+            </a>
           </nav>
         </header>
         {children}
