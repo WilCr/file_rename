@@ -151,7 +151,17 @@ export function formatFileSize(bytes) {
 }
 
 /**
- * @param {'date'|'sequential'|'lowercase'|'clean'} pattern
+ * @param {string} isoDate YYYY-MM-DD
+ * @returns {string} MM-DD-YYYY
+ */
+function toMonthDayYear(isoDate) {
+  const [year, month, day] = isoDate.split('-')
+  if (year && month && day) return `${month}-${day}-${year}`
+  return isoDate
+}
+
+/**
+ * @param {'date'|'date-mdy'|'sequential'|'lowercase'|'clean'} pattern
  * @param {string} stem
  * @param {{ index: number, dateStr?: string }} ctx
  * @returns {{ stem: string, datePrefix: string | null }}
@@ -165,6 +175,10 @@ export function applyNamingPattern(pattern, stem, ctx) {
       // AI-suggested names.
       const rest = sanitizeSegment(stem).replace(/\s+/g, '_')
       return { stem: rest, datePrefix: today }
+    }
+    case 'date-mdy': {
+      const rest = sanitizeSegment(stem).replace(/\s+/g, '_')
+      return { stem: rest, datePrefix: toMonthDayYear(today) }
     }
     case 'sequential': {
       const n = String(index + 1).padStart(3, '0')

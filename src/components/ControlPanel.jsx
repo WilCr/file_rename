@@ -2,6 +2,7 @@ import { Download, Loader2, Sparkles } from 'lucide-react'
 
 const PATTERNS = [
   { id: 'date', label: 'Date Prefix (YYYY-MM-DD_filename)' },
+  { id: 'date-mdy', label: 'Date Prefix (MM-DD-YYYY)' },
   { id: 'sequential', label: 'Sequential Numbers (file_001, file_002)' },
   { id: 'lowercase', label: 'Lowercase & underscores' },
   { id: 'clean', label: 'Clean Special Characters' },
