@@ -9,7 +9,7 @@ export default function PricingPage() {
     <SiteChrome wide>
       <Seo
         title="Pricing | ScanRename"
-        description="Free plan includes 10 AI-powered file renames per month. Pro is 500 for $9.99. Business is 5,000 for $29.99. Pattern renaming is included on every plan."
+        description="Free plan includes 10 AI-powered file renames per month. Pro is 200 for $8.99. Business is 700 for $25.99. Pattern renaming is included on every plan."
         path="/pricing"
       />
       <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">

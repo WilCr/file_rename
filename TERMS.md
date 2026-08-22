@@ -1,6 +1,6 @@
 # Terms of Service
 
-_Last updated: 21 August 2026_
+_Last updated: 22 August 2026_
 
 These terms apply when you use ScanRename (an AI file renamer) at
 [https://scanrename.com](https://scanrename.com). Creating
@@ -74,9 +74,9 @@ account data as described in the Privacy Note.
 ## Plans and payment
 
 - **Free:** 10 AI-powered renames per month, plus unlimited pattern renaming.
-- **Pro ($9.99/month):** 500 AI-powered renames per month, plus all pattern
+- **Pro ($8.99/month):** 200 AI-powered renames per month, plus all pattern
   options.
-- **Business ($29.99/month):** 5,000 AI-powered renames per month. Same
+- **Business ($25.99/month):** 700 AI-powered renames per month. Same
   renaming tools as Pro. No team workspace, public API, or dedicated support
   channel is included at this time.
 

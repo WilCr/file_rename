@@ -17,10 +17,10 @@ export const PLANS = [
   },
   {
     name: 'Pro',
-    price: '$9.99',
-    credits: '500 renames / month',
+    price: '$8.99',
+    credits: '200 renames / month',
     features: [
-      '500 AI-powered renames per month',
+      '200 AI-powered renames per month',
       'All pattern options',
       'Priority processing',
       'Batch operations',
@@ -30,10 +30,10 @@ export const PLANS = [
   },
   {
     name: 'Business',
-    price: '$29.99',
-    credits: '5,000 renames / month',
+    price: '$25.99',
+    credits: '700 renames / month',
     features: [
-      '5,000 AI-powered renames per month',
+      '700 AI-powered renames per month',
       'Same renaming tools as Pro (patterns, owner labels, batch AI)',
       'Reads PDFs, images, and Word documents for naming',
     ],
