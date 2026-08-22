@@ -1,7 +1,7 @@
 export default function Hero() {
   return (
     <section className="mx-auto max-w-2xl px-4 pb-2 pt-4 text-center sm:pt-8">
-      <p className="font-display text-sm font-semibold uppercase tracking-wide text-violet-700">
+      <p className="font-display text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
         ScanRename
       </p>
       <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
